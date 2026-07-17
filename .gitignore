@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+openclaw/config/.env
+openclaw/data/*.sqlite
+openclaw/data/*.sqlite-*
+openclaw/logs/*.log
+openclaw/output/
+openclaw/scripts/*_output.txt

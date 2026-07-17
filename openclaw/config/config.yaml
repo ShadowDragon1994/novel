@@ -1,0 +1,41 @@
+scan:
+  production_interval_seconds: 300
+  publish_interval_seconds: 300
+concurrency:
+  per_novel_max: 2
+  global_max: 5
+retry:
+  llm_max_attempts: 3
+  publish_max_attempts: 3
+circuit_breaker:
+  failure_threshold: 5
+  cooldown_seconds: 600
+rate_limit:
+  feishu_read_qps: 3
+  feishu_write_qps: 2
+  feishu_read_bucket_capacity: 10
+  feishu_write_bucket_capacity: 5
+  llm_qps: 2
+cache:
+  read_cache_ttl_seconds: 60
+task_lock:
+  lock_timeout_minutes: 30
+inventory:
+  safety_threshold: 6
+  warning_threshold: 4
+  pause_threshold: 3
+publish_window:
+  earliest: 08:30
+  latest: '22:00'
+  min_gap_hours: 6
+  jitter_minutes:
+  - 5
+  - 15
+  evening_batch: '23:00'
+  morning_batch: 08:10
+confirm_queue:
+  alert_threshold: 20
+paths:
+  sqlite: data/openclaw.sqlite
+  log_file: logs/openclaw.log
+  field_mapping: config/field_mapping.yaml

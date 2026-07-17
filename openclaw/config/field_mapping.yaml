@@ -1,0 +1,846 @@
+小说总览表:
+  table_id: tblAow1Q3dIJI6Pt
+  table_name_en: novel_overview
+  fields:
+    总卷数:
+      field_id: fldNY99Hl6
+      field_name_en: total_volumes
+      type: number
+    ID:
+      field_id: fldqgLrzCO
+      field_name_en: id
+      type: auto_number
+    题材:
+      field_id: fldUxeE3SB
+      field_name_en: genre
+      type: text
+    核心卖点:
+      field_id: fldiccsD16
+      field_name_en: core_selling_point
+      type: text
+    本月已更天数:
+      field_id: fld3HoLZMj
+      field_name_en: days_updated_this_month
+      type: number
+    总章节数:
+      field_id: fldO7fcahq
+      field_name_en: total_chapters
+      type: number
+    发布时间窗口:
+      field_id: fldNa5pyBt
+      field_name_en: publish_time_window
+      type: text
+    已完成字数:
+      field_id: fldSf6h6nG
+      field_name_en: completed_word_count
+      type: number
+    公式统计字段配置:
+      field_id: fldnR9ueoI
+      field_name_en: formula_config
+      type: text
+    最后同步时间:
+      field_id: fldI2j3RGq
+      field_name_en: last_sync_time
+      type: datetime
+    发布暂停原因:
+      field_id: fldq1Jz6Pq
+      field_name_en: pause_reason
+      type: text
+    日更目标:
+      field_id: fldCQsN0Lo
+      field_name_en: daily_update_goal
+      type: number
+    完成进度:
+      field_id: fldDwgDljA
+      field_name_en: completion_progress
+      type: progress
+    上线批次:
+      field_id: fldfUTjRKM
+      field_name_en: launch_batch
+      type: text
+    已完成章节数:
+      field_id: fldNpVdBw1
+      field_name_en: completed_chapters
+      type: number
+    当前可发布存稿数:
+      field_id: fldfpDnMcW
+      field_name_en: current_draft_count
+      type: number
+    自动流程开关:
+      field_id: fldOHCSXgL
+      field_name_en: auto_workflow_enabled
+      type: checkbox
+    小说ID:
+      field_id: fldJ6KDbnV
+      field_name_en: novel_id
+      type: text
+    自动发布开关:
+      field_id: fld3XF2YVt
+      field_name_en: auto_publish_enabled
+      type: checkbox
+    关联账号:
+      field_id: fldwbc2tyP
+      field_name_en: linked_accounts
+      type: text
+    总字数:
+      field_id: fldJav8Ucu
+      field_name_en: total_word_count
+      type: number
+    最低存稿章节数:
+      field_id: fldelzwfGG
+      field_name_en: min_reserve_chapters
+      type: number
+    总字数_N:
+      field_id: fld3WoK5Vn
+      field_name_en: total_word_count_alt
+      type: number
+    书名:
+      field_id: fldIgL7V4A
+      field_name_en: title
+      type: text
+账号管理表:
+  table_id: tblUNhG0psTmXC2t
+  table_name_en: account_management
+  fields:
+    上次发布时间:
+      field_id: fld8GP6IiM
+      field_name_en: last_publish_time
+      type: datetime
+    账号状态:
+      field_id: fldukv75OL
+      field_name_en: account_status
+      type: select
+    ID:
+      field_id: fldE4b9zGS
+      field_name_en: id
+      type: auto_number
+    今日计划发布章数:
+      field_id: fldqHoNVGb
+      field_name_en: today_planned_chapters
+      type: number
+    今日已发布章数:
+      field_id: fldPluu6QL
+      field_name_en: today_published_chapters
+      type: number
+    注册日期:
+      field_id: fldvwS0T3V
+      field_name_en: register_date
+      type: datetime
+分卷大纲表:
+  table_id: tblEGjc18Mcp0NUb
+  table_name_en: volume_outline
+  fields:
+    结局:
+      field_id: fld8dokGaW
+      field_name_en: ending
+      type: text
+    章节任务表关联:
+      field_id: fldASx8e3A
+      field_name_en: linked_chapter_task
+      type: text
+    卷序号:
+      field_id: fldNnNeGC9
+      field_name_en: volume_index
+      type: number
+    卷状态:
+      field_id: fldOkqzGvJ
+      field_name_en: volume_status
+      type: select
+    小说ID:
+      field_id: flduA0zQ39
+      field_name_en: novel_id
+      type: text
+    卷名:
+      field_id: fldpJIxrSy
+      field_name_en: volume_name
+      type: text
+    高潮:
+      field_id: fldtzZpNgd
+      field_name_en: climax
+      type: text
+    爽点类型:
+      field_id: fldBSUHmRg
+      field_name_en: appeal_type
+      type: text
+    ID:
+      field_id: fldX9Q1e1M
+      field_name_en: id
+      type: auto_number
+    卷ID:
+      field_id: fldwhH78PM
+      field_name_en: volume_id
+      type: text
+    起止章节:
+      field_id: fldopK9dEe
+      field_name_en: chapter_range
+      type: text
+    本卷主线:
+      field_id: fldhrFCn91
+      field_name_en: volume_main_plot
+      type: text
+章节任务表:
+  table_id: tblQ0lBtkFeVEYId
+  table_name_en: chapter_task
+  fields:
+    发布状态:
+      field_id: fldQ8mNO5E
+      field_name_en: publish_status
+      type: select
+    ID:
+      field_id: fldQrzXvyb
+      field_name_en: id
+      type: auto_number
+    最终评分:
+      field_id: fldJUECLO2
+      field_name_en: final_rating
+      type: rating
+    章节ID:
+      field_id: fldH5Yn3eV
+      field_name_en: chapter_id
+      type: text
+    生成时间:
+      field_id: fldYzlyLaN
+      field_name_en: generated_time
+      type: datetime
+    最终字数:
+      field_id: fld6nBGpmM
+      field_name_en: final_word_count
+      type: number
+    运行锁定时间:
+      field_id: fld6vJZ8yD
+      field_name_en: lock_time
+      type: datetime
+    审核时间:
+      field_id: fldeCdbFhM
+      field_name_en: audit_time
+      type: datetime
+    状态流转记录:
+      field_id: fldrGFmM0o
+      field_name_en: status_flow_record
+      type: text
+    生产状态:
+      field_id: fldFN3V2li
+      field_name_en: production_status
+      type: select
+    章节名:
+      field_id: fldg2Rfes1
+      field_name_en: chapter_name
+      type: text
+    晚班审核结果:
+      field_id: fldADltl2D
+      field_name_en: night_audit_result
+      type: select
+    人工审核优先级排班:
+      field_id: fldvkxm3o2
+      field_name_en: manual_audit_priority
+      type: select
+    错误信息:
+      field_id: fldVATnvf6
+      field_name_en: error_message
+      type: text
+    AI建议审核等级:
+      field_id: fldrpAaKYy
+      field_name_en: ai_suggested_audit_level
+      type: select
+    AI审核摘要:
+      field_id: fldVXGlhY5
+      field_name_en: ai_audit_summary
+      type: text
+    审核人:
+      field_id: fldeKZXbeV
+      field_name_en: auditor
+      type: user
+    人工审核意见:
+      field_id: fld8UK1tDC
+      field_name_en: manual_audit_comment
+      type: text
+    任务优先级:
+      field_id: fldfkjjHn2
+      field_name_en: task_priority
+      type: select
+    流程重试次数:
+      field_id: fldpjN59gH
+      field_name_en: retry_count
+      type: number
+    初始状态:
+      field_id: fldBNx222C
+      field_name_en: initial_status
+      type: select
+    内容锁定状态:
+      field_id: flddzj09XQ
+      field_name_en: content_lock_status
+      type: select
+    章节号:
+      field_id: flduRmlw5I
+      field_name_en: chapter_number
+      type: number
+    小说ID:
+      field_id: fld4RrJpjx
+      field_name_en: novel_id
+      type: text
+    排班批次:
+      field_id: fld3su0R7t
+      field_name_en: schedule_batch
+      type: text
+    当前版本:
+      field_id: fldncLMaQP
+      field_name_en: current_version
+      type: number
+    计划发布时间:
+      field_id: fldZfsQGVF
+      field_name_en: planned_publish_time
+      type: datetime
+    章节卡内容:
+      field_id: fldYrdusRI
+      field_name_en: chapter_card_content
+      type: text
+    卷ID:
+      field_id: fldEqJeUOs
+      field_name_en: volume_id
+      type: text
+    人工审核结果:
+      field_id: fldHc2UIJr
+      field_name_en: manual_audit_result
+      type: select
+    上下文哈希:
+      field_id: fldgxw1gxo
+      field_name_en: context_hash
+      type: text
+    内容返工次数:
+      field_id: fldrVK5aAV
+      field_name_en: revision_count
+      type: number
+    人工审核优先级:
+      field_id: fldvkxm3o2
+      field_name_en: manual_audit_priority
+      type: select
+      remote_field_name: 人工审核优先级排班
+    排班生成时间:
+      field_id: fldYzlyLaN
+      field_name_en: generated_time
+      type: datetime
+      remote_field_name: 生成时间
+人物档案表:
+  table_id: tblTHyQVc2nj4waf
+  table_name_en: character_profile
+  fields:
+    人物ID:
+      field_id: fld04F3Ziq
+      field_name_en: character_id
+      type: text
+    人物名称:
+      field_id: fldw2rsHo1
+      field_name_en: character_name
+      type: text
+    性格:
+      field_id: fldxJJEGVs
+      field_name_en: personality
+      type: text
+    角色定位:
+      field_id: fldaactlyTJ
+      field_name_en: role_type
+      type: select
+    目标:
+      field_id: fld9dxboKB
+      field_name_en: goal
+      type: text
+    最后更新时间:
+      field_id: fldQXZP5TN
+      field_name_en: last_update_time
+      type: datetime
+    来源状态:
+      field_id: fld2BxSBtK
+      field_name_en: source_status
+      type: select
+    ID:
+      field_id: fldUFclbYc
+      field_name_en: id
+      type: auto_number
+    是否核心:
+      field_id: fldJWdIrxt
+      field_name_en: is_core
+      type: checkbox
+    人物变化记录:
+      field_id: fldtHOarUJ
+      field_name_en: character_change_log
+      type: text
+    人物别名:
+      field_id: fldIeBYHYZ
+      field_name_en: alias
+      type: text
+    最近出场章节:
+      field_id: fldvuYKMKa
+      field_name_en: last_appearance_chapter
+      type: number
+    确认状态:
+      field_id: fldVGApNi6
+      field_name_en: confirmation_status
+      type: select
+    关系:
+      field_id: flduDPXTfD
+      field_name_en: relationships
+      type: text
+    禁止OOC行为:
+      field_id: fldYWUKqyX
+      field_name_en: ooc_forbidden_behaviors
+      type: text
+世界观设定表:
+  table_id: tblU15BOgYMZktMN
+  table_name_en: world_setting
+  fields:
+    设定类型:
+      field_id: fldsQYA7uS
+      field_name_en: setting_type
+      type: select
+    设定ID:
+      field_id: fld8tBTEha
+      field_name_en: setting_id
+      type: text
+    设定名称:
+      field_id: fld5Tv0NtP
+      field_name_en: setting_name
+      type: text
+    ID:
+      field_id: fldQwYccXQ
+      field_name_en: id
+      type: auto_number
+    确认状态:
+      field_id: fldEHe2mbA
+      field_name_en: confirmation_status
+      type: select
+    是否核心规则:
+      field_id: fldAgWHkKQ
+      field_name_en: is_core_rule
+      type: select
+    设定内容:
+      field_id: fldrpQPKAP
+      field_name_en: setting_content
+      type: text
+    来源状态:
+      field_id: fldY48Y68Q
+      field_name_en: source_status
+      type: select
+    权重:
+      field_id: fldNJ78z9r
+      field_name_en: weight
+      type: select
+    是否核心:
+      field_id: fldcmufb4j
+      field_name_en: is_core
+      type: checkbox
+    冲突处理原则:
+      field_id: fldcmGTXsO
+      field_name_en: conflict_resolution
+      type: text
+势力组织表:
+  table_id: tblXvNAC8d6Qa9NV
+  table_name_en: faction_organization
+  fields:
+    是否核心:
+      field_id: fld5B4HBmD
+      field_name_en: is_core
+      type: checkbox
+    关系:
+      field_id: fldSkb4Nc9
+      field_name_en: relationships
+      type: text
+    掌权人:
+      field_id: fldzoADvWa
+      field_name_en: leader
+      type: text
+    势力ID:
+      field_id: fldC5Khtcj
+      field_name_en: faction_id
+      type: text
+    核心资源:
+      field_id: fldaZ40kym
+      field_name_en: core_resources
+      type: text
+    来源状态:
+      field_id: fld55Zs1X6
+      field_name_en: source_status
+      type: select
+    确认状态:
+      field_id: flddjMrcAp
+      field_name_en: confirmation_status
+      type: select
+    势力类型:
+      field_id: fldOeZTilf
+      field_name_en: faction_type
+      type: select
+    ID:
+      field_id: fldU4seY9g
+      field_name_en: id
+      type: auto_number
+    势力回写规则:
+      field_id: fldNydIj6o
+      field_name_en: faction_writeback_rule
+      type: text
+    实力等级:
+      field_id: fld8KXgmBA
+      field_name_en: power_level
+      type: text
+    势力名称:
+      field_id: fldrEA3H3f
+      field_name_en: faction_name
+      type: text
+伏笔追踪表:
+  table_id: tbl1mD9XCdAuiz7n
+  table_name_en: foreshadow_tracking
+  fields:
+    重要等级:
+      field_id: fldY4LKKQM
+      field_name_en: importance_level
+      type: select
+    预计回收章节:
+      field_id: fldhWNJCrs
+      field_name_en: expected_resolve_chapter
+      type: number
+    ID:
+      field_id: fldfdtZE6m
+      field_name_en: id
+      type: auto_number
+    伏笔内容:
+      field_id: fld3qrqNu3
+      field_name_en: foreshadow_content
+      type: text
+    铺设章节:
+      field_id: fldzrH7bzn
+      field_name_en: setup_chapter
+      type: number
+    是否主线伏笔:
+      field_id: fldcxXnsL6
+      field_name_en: is_main_plot_foreshadow
+      type: checkbox
+    回收方式:
+      field_id: fldxbZOhbe
+      field_name_en: resolve_method
+      type: text
+    来源状态:
+      field_id: fldidWPj95
+      field_name_en: source_status
+      type: select
+    伏笔识别提醒逻辑:
+      field_id: fldbcBZdmz
+      field_name_en: foreshadow_reminder_logic
+      type: text
+    确认状态:
+      field_id: fldGAEKyyp
+      field_name_en: confirmation_status
+      type: select
+    回收状态:
+      field_id: fldBC1YuLY
+      field_name_en: resolve_status
+      type: select
+    伏笔ID:
+      field_id: fldUj9gFaG
+      field_name_en: foreshadow_id
+      type: text
+长期记忆表:
+  table_id: tblfBfBjGntXyhvA
+  table_name_en: long_term_memory
+  fields:
+    核心人物:
+      field_id: fld9wJUuOz
+      field_name_en: core_characters
+      type: text
+    来源状态:
+      field_id: flddAnEng5
+      field_name_en: source_status
+      type: select
+    确认状态:
+      field_id: fldJiLlrpv
+      field_name_en: confirmation_status
+      type: select
+    是否当前生效:
+      field_id: fldJgrBzBk
+      field_name_en: is_current_active
+      type: checkbox
+    创建时间:
+      field_id: fldazjIAVt
+      field_name_en: created_time
+      type: datetime
+    版本ID:
+      field_id: fldVhzTwsE
+      field_name_en: version_id
+      type: text
+    核心矛盾:
+      field_id: fld9WWzdq0
+      field_name_en: core_conflict
+      type: text
+    规则:
+      field_id: fldffK8Kcg
+      field_name_en: rules
+      type: text
+    主线:
+      field_id: fldMYwNhU3
+      field_name_en: main_plot
+      type: text
+    ID:
+      field_id: fldNWl5Uy1
+      field_name_en: id
+      type: auto_number
+    是否核心:
+      field_id: fldOPJaczA
+      field_name_en: is_core
+      type: checkbox
+    禁止事项:
+      field_id: fldUWcc4LG
+      field_name_en: forbidden_items
+      type: text
+中期记忆表:
+  table_id: tblxkLxxNQBJHARh
+  table_name_en: mid_term_memory
+  fields:
+    生成时间:
+      field_id: fldKcGRmtW
+      field_name_en: generated_time
+      type: datetime
+    ID:
+      field_id: fldnBSgvWm
+      field_name_en: id
+      type: auto_number
+    版本ID:
+      field_id: fldMLXzFiG
+      field_name_en: version_id
+      type: text
+    所属卷ID:
+      field_id: fldqonyIds
+      field_name_en: volume_id
+      type: text
+    阶段总结内容:
+      field_id: fldPVChp3T
+      field_name_en: phase_summary_content
+      type: text
+    触发类型:
+      field_id: flddqGSXZU
+      field_name_en: trigger_type
+      type: select
+短期记忆表:
+  table_id: tblqoC2cybnSUzAo
+  table_name_en: short_term_memory
+  fields:
+    版本ID:
+      field_id: fldN98yYji
+      field_name_en: version_id
+      type: text
+    关联章节ID:
+      field_id: fldPMKixke
+      field_name_en: linked_chapter_id
+      type: text
+    人物变化:
+      field_id: fld7uxmvGV
+      field_name_en: character_changes
+      type: text
+    摘要:
+      field_id: fldTLpNAQI
+      field_name_en: summary
+      type: text
+    生成时间:
+      field_id: fld7kDmFu7
+      field_name_en: generated_time
+      type: datetime
+    关键事件:
+      field_id: fldK9nXYT7
+      field_name_en: key_events
+      type: text
+    伏笔处理:
+      field_id: fldDQiO7XZ
+      field_name_en: foreshadow_handling
+      type: text
+    ID:
+      field_id: fldwzwzQB8
+      field_name_en: id
+      type: auto_number
+正文版本表:
+  table_id: tblBleN3etxvxBmg
+  table_name_en: chapter_version
+  fields:
+    是否当前最终版:
+      field_id: fldPu2upLr
+      field_name_en: is_current_final_version
+      type: checkbox
+    版本ID:
+      field_id: fldUeXB8r5
+      field_name_en: version_id
+      type: text
+    版本内容:
+      field_id: fldYKDi4Tt
+      field_name_en: version_content
+      type: text
+    ID:
+      field_id: flddnySSbo
+      field_name_en: id
+      type: auto_number
+    章节ID:
+      field_id: fldp9ZDx0W
+      field_name_en: chapter_id
+      type: text
+    版本类型:
+      field_id: fldlX99mIH
+      field_name_en: version_type
+      type: select
+    字数:
+      field_id: fldhSMYylN
+      field_name_en: word_count
+      type: number
+    创建时间:
+      field_id: fldbw0h8RI
+      field_name_en: created_time
+      type: datetime
+质量检查表:
+  table_id: tbl8vHbaAF96Z6he
+  table_name_en: quality_inspection
+  fields:
+    问题列表:
+      field_id: fld6B8PzH4
+      field_name_en: issue_list
+      type: text
+    ID:
+      field_id: flduzQknBD
+      field_name_en: id
+      type: auto_number
+    评分:
+      field_id: fldAmQn4ip
+      field_name_en: rating
+      type: rating
+    检查时间:
+      field_id: fldDeh6qTZ
+      field_name_en: inspection_time
+      type: datetime
+    检查类型:
+      field_id: fld5OzgvDC
+      field_name_en: inspection_type
+      type: select
+    章节ID:
+      field_id: fldP5K37LO
+      field_name_en: chapter_id
+      type: text
+    修改建议:
+      field_id: fldlFo9tVw
+      field_name_en: revision_suggestion
+      type: text
+    检查ID:
+      field_id: fldM3tXZwf
+      field_name_en: inspection_id
+      type: text
+发布记录表:
+  table_id: tbl0gH61y9wnG21w
+  table_name_en: publish_record
+  fields:
+    发布时间:
+      field_id: fldkbfvNuT
+      field_name_en: publish_time
+      type: datetime
+    账号ID:
+      field_id: fldUWU2V71
+      field_name_en: account_id
+      type: text
+    发布尝试状态:
+      field_id: fldscgaC7V
+      field_name_en: publish_attempt_status
+      type: select
+    ID:
+      field_id: fldlvdaO04
+      field_name_en: id
+      type: auto_number
+    发布ID:
+      field_id: fld4dsg7Io
+      field_name_en: publish_id
+      type: text
+    章节ID:
+      field_id: fldAAmmU3R
+      field_name_en: chapter_id
+      type: text
+    关联正文版本:
+      field_id: fldhWFL24y
+      field_name_en: linked_version
+      type: text
+    失败原因:
+      field_id: fld4lT5j1z
+      field_name_en: failure_reason
+      type: text
+数据反馈表:
+  table_id: tblkIP9gcyitrc7d
+  table_name_en: data_feedback
+  fields:
+    阅读量:
+      field_id: fldQegJGy0
+      field_name_en: read_count
+      type: number
+    收益:
+      field_id: fldUFVStRO
+      field_name_en: revenue
+      type: currency
+    完读率:
+      field_id: fldueJlmNK
+      field_name_en: completion_rate
+      type: progress
+    追更率:
+      field_id: fldzeONTpS
+      field_name_en: follow_rate
+      type: progress
+    建议:
+      field_id: fldIYzbF4C
+      field_name_en: suggestion
+      type: text
+    ID:
+      field_id: flddSPuJ5s
+      field_name_en: id
+      type: auto_number
+    反馈ID:
+      field_id: fldGGeB29V
+      field_name_en: feedback_id
+      type: text
+    小说ID:
+      field_id: fldRf4h2pC
+      field_name_en: novel_id
+      type: text
+    数据日期:
+      field_id: fldDbkvBoM
+      field_name_en: data_date
+      type: datetime
+运行日志表:
+  table_id: tbljUYFBTQQvAABp
+  table_name_en: runtime_log
+  fields:
+    输入摘要:
+      field_id: fldKOPpc8L
+      field_name_en: input_summary
+      type: text
+    开始时间:
+      field_id: fldZPJXRQ0
+      field_name_en: start_time
+      type: datetime
+    ID:
+      field_id: fldLpBJe68
+      field_name_en: id
+      type: auto_number
+    结束时间:
+      field_id: fldNCDncDK
+      field_name_en: end_time
+      type: datetime
+    错误信息:
+      field_id: fldsp4pjFH
+      field_name_en: error_message
+      type: text
+    节点名称:
+      field_id: fldtCdAjdE
+      field_name_en: node_name
+      type: text
+    重试次数:
+      field_id: fldzroqPdN
+      field_name_en: retry_count
+      type: number
+    日志ID:
+      field_id: fld9VY6pko
+      field_name_en: log_id
+      type: text
+    执行状态:
+      field_id: fldXLDJFoO
+      field_name_en: execution_status
+      type: select
+    输出摘要:
+      field_id: fldZx364dL
+      field_name_en: output_summary
+      type: text

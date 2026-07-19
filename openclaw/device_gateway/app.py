@@ -17,10 +17,10 @@ class AdbOperations(Protocol):
 class PublishRequest(BaseModel):
     chapter_id: str = Field(min_length=1)
     account_id: str = Field(min_length=1)
-    device_id: str = Field(min_length=1)
-    platform: str = Field(min_length=1)
-    title: str = Field(min_length=1)
-    content: str = Field(min_length=1)
+    device_id: str | None = None
+    platform: str | None = None
+    title: str | None = None
+    content: str | None = None
 
 
 def create_app(*, adb: AdbOperations | None = None) -> FastAPI:
@@ -42,6 +42,8 @@ def create_app(*, adb: AdbOperations | None = None) -> FastAPI:
 
     @app.post("/publish")
     async def publish(request: PublishRequest) -> None:
+        if not request.device_id:
+            raise HTTPException(status_code=503, detail="device_id is required for ADB publishing")
         try:
             state = await adb_client.device_state(request.device_id)
         except AdbError as exc:

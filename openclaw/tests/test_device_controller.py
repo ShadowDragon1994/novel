@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import httpx
 import pytest
 
@@ -14,3 +16,35 @@ async def test_publish_fails_when_endpoint_is_not_configured() -> None:
             await controller.publish_chapter("chapter-1", "account-1")
     finally:
         await controller.http_client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_publish_sends_extended_gateway_payload() -> None:
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.update(json.loads(request.content))
+        return httpx.Response(200)
+
+    http_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    controller = DeviceController(endpoint="http://gateway", http_client=http_client)
+    try:
+        await controller.publish_chapter(
+            "chapter-1",
+            "account-1",
+            device_id="cloud-1",
+            platform="example",
+            title="第一章",
+            content="正文",
+        )
+    finally:
+        await http_client.aclose()
+
+    assert captured == {
+        "chapter_id": "chapter-1",
+        "account_id": "account-1",
+        "device_id": "cloud-1",
+        "platform": "example",
+        "title": "第一章",
+        "content": "正文",
+    }

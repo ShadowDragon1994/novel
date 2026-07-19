@@ -177,6 +177,17 @@ class FeishuClient:
                 return fields
             page_token = data.get("page_token")
 
+    async def create_field(self, table: FeishuTable, field: dict[str, Any]) -> dict[str, Any]:
+        if not self.app_token:
+            raise FeishuConfigError("FEISHU_APP_TOKEN is required for Bitable field APIs")
+        await self.write_limiter.acquire()
+        response = await self._request_json(
+            "POST",
+            f"/open-apis/bitable/v1/apps/{self.app_token}/tables/{table.table_id}/fields",
+            json=field,
+        )
+        return response.get("data", {}).get("field", {})
+
     async def get_record(self, table_name: str, record_id: str) -> dict[str, Any]:
         cache_key = self._record_cache_key(table_name, record_id)
         if self.read_cache:

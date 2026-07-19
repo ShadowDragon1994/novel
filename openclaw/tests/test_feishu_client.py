@@ -178,6 +178,27 @@ async def test_list_fields_uses_table_mapping() -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_field_uses_table_mapping() -> None:
+    payload = {"field_name": "账号阶段", "type": 3, "property": {"options": [{"name": "养号期"}]}}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/tenant_access_token/internal"):
+            return httpx.Response(200, json={"code": 0, "tenant_access_token": "token-1", "expire": 7200})
+        if request.method == "POST" and request.url.path.endswith("/tables/tblUNhG0psTmXC2t/fields"):
+            expected = '{"field_name":"账号阶段","type":3,"property":{"options":[{"name":"养号期"}]}}'
+            assert request.read().decode() == expected
+            return httpx.Response(200, json={"code": 0, "data": {"field": {"field_id": "fld-stage"}}})
+        raise AssertionError(f"unexpected request {request.method} {request.url.path}")
+
+    client = make_client(handler)
+    try:
+        table = client.resolve_table("账号管理表")
+        assert await client.create_field(table, payload) == {"field_id": "fld-stage"}
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
 async def test_list_records_uses_cache_on_second_call(tmp_path) -> None:
     record_calls = 0
 

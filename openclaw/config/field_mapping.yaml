@@ -126,6 +126,22 @@
       field_id: fldvwS0T3V
       field_name_en: register_date
       type: datetime
+    绑定小说ID:
+      field_id: fldimTvcne
+      field_name_en: bound_novel_id
+      type: text
+    红手指设备ID:
+      field_id: fldvEsjcUf
+      field_name_en: hongshouzhi_device_id
+      type: text
+    账号健康状态:
+      field_id: fldztfBAEz
+      field_name_en: account_health_status
+      type: select
+    账号阶段:
+      field_id: fldz7reK0f
+      field_name_en: account_stage
+      type: select
 分卷大纲表:
   table_id: tblEGjc18Mcp0NUb
   table_name_en: volume_outline

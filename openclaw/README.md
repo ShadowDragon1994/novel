@@ -18,6 +18,18 @@ python main.py
 python -m pytest -q
 ```
 
+## Device Gateway
+
+The local gateway is disabled from publishing until a platform workflow is configured. Start its ADB health and
+device-status endpoints on loopback with:
+
+```powershell
+python -m uvicorn device_gateway.app:app --host 127.0.0.1 --port 8080
+```
+
+Set `ADB_PATH` when `adb` is not available on `PATH`, then verify `GET /health` and
+`GET /devices/{device_id}` before enabling the publish scanner.
+
 `pyproject.toml` sets `pythonpath = ["."]`, so tests can be run from the `openclaw/` directory without extra environment variables.
 
 ## Architecture

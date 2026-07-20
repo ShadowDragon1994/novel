@@ -36,5 +36,15 @@ def test_typo_confirmation_is_guarded() -> None:
     action = profile.resolve("typo_confirmation", "confirm", width=720, height=1280)
 
     assert action.point == (508, 749)
-    assert action.next_state == "publish_settings"
+    assert action.next_state == "content_detection"
+    assert action.requires_confirmation is True
+
+
+def test_final_publish_is_guarded() -> None:
+    profile = CoordinateProfile.load_default()
+
+    action = profile.resolve("publish_settings", "confirm_publish", width=720, height=1280)
+
+    assert action.point == (360, 1140)
+    assert action.next_state == "published"
     assert action.requires_confirmation is True

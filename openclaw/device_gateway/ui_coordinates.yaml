@@ -58,6 +58,50 @@ states:
       confirm:
         x: 508
         y: 749
+        next_state: content_detection
+        requires_confirmation: true
+        verify_any:
+          - 请选择内容检测方式
+  content_detection:
+    actions:
+      basic_check:
+        x: 190
+        y: 1144
         next_state: publish_settings
+        verify_any:
+          - 发布设置
+          - 确认发布
+      comprehensive_check:
+        x: 530
+        y: 1144
+        next_state: publish_settings
+        requires_confirmation: true
+        verify_any:
+          - 发布设置
+          - 确认发布
+  publish_settings:
+    actions:
+      choose_cover:
+        x: 360
+        y: 566
+        next_state: publish_settings
+        verify_any:
+          - 发布设置
+      focus_work_name:
+        x: 360
+        y: 744
+        next_state: publish_settings
+        verify_any:
+          - 作品名称
+      close:
+        x: 64
+        y: 174
+        next_state: chapter_editor
+        verify_any:
+          - 已保存到云端
+      confirm_publish:
+        x: 360
+        y: 1140
+        next_state: published
         requires_confirmation: true
         verify_any: []

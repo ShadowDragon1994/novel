@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import os
 from typing import Protocol
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from core.config import CONFIG_DIR
 from device_gateway.adb import AdbClient, AdbError
 
 
@@ -23,7 +26,7 @@ class PublishRequest(BaseModel):
     content: str | None = None
 
 
-def create_app(*, adb: AdbOperations | None = None) -> FastAPI:
+def create_app(*, adb: AdbOperations | None = None, default_device_id: str | None = None) -> FastAPI:
     app = FastAPI(title="OpenClaw Device Gateway", version="0.1.0")
     adb_client = adb or AdbClient()
 
@@ -42,10 +45,11 @@ def create_app(*, adb: AdbOperations | None = None) -> FastAPI:
 
     @app.post("/publish")
     async def publish(request: PublishRequest) -> None:
-        if not request.device_id:
+        device_id = request.device_id or default_device_id
+        if not device_id:
             raise HTTPException(status_code=503, detail="device_id is required for ADB publishing")
         try:
-            state = await adb_client.device_state(request.device_id)
+            state = await adb_client.device_state(device_id)
         except AdbError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         if state != "device":
@@ -55,4 +59,5 @@ def create_app(*, adb: AdbOperations | None = None) -> FastAPI:
     return app
 
 
-app = create_app()
+load_dotenv(CONFIG_DIR / ".env")
+app = create_app(default_device_id=os.getenv("HONGSHOUZHI_DEVICE_ID"))

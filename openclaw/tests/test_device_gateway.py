@@ -68,3 +68,16 @@ async def test_publish_accepts_existing_contract_but_requires_device_id() -> Non
 
     assert response.status_code == 503
     assert response.json()["detail"] == "device_id is required for ADB publishing"
+
+
+@pytest.mark.asyncio
+async def test_publish_uses_configured_default_device_id() -> None:
+    transport = httpx.ASGITransport(app=create_app(adb=FakeAdb(), default_device_id="cloud-1"))
+    async with httpx.AsyncClient(transport=transport, base_url="http://gateway") as client:
+        response = await client.post(
+            "/publish",
+            json={"chapter_id": "chapter-1", "account_id": "account-1"},
+        )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "publishing workflow is not configured"

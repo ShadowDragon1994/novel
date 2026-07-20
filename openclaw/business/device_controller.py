@@ -11,7 +11,8 @@ class DeviceNotConfiguredError(RuntimeError):
 
 class DeviceController:
     def __init__(self, endpoint: str | None = None, http_client: httpx.AsyncClient | None = None) -> None:
-        self.endpoint = (endpoint or os.getenv("HONGSHOUZHI_ENDPOINT") or "").rstrip("/")
+        configured_endpoint = os.getenv("HONGSHOUZHI_ENDPOINT") if endpoint is None else endpoint
+        self.endpoint = (configured_endpoint or "").rstrip("/")
         self.http_client = http_client or httpx.AsyncClient(timeout=60)
         self._owns_client = http_client is None
 

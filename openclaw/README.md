@@ -30,6 +30,11 @@ python -m uvicorn device_gateway.app:app --host 127.0.0.1 --port 8080
 Set `ADB_PATH` when `adb` is not available on `PATH`, then verify `GET /health` and
 `GET /devices/{device_id}` before enabling the publish scanner.
 
+Known UI-only actions are stored in `device_gateway/ui_coordinates.yaml`. Each coordinate is bound to its source
+page and reference resolution; `CoordinateProfile.resolve()` scales it for the connected device. The Fanqie Writer
+`start_creation` action is valid only after `open_works` reaches `works_page`, and the editor must then expose
+`下一步` or `AI工具箱` before the workflow continues.
+
 `pyproject.toml` sets `pythonpath = ["."]`, so tests can be run from the `openclaw/` directory without extra environment variables.
 
 ## Architecture

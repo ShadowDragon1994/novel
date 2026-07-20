@@ -1,0 +1,23 @@
+profile: fanqie_writer_720x1280
+package: com.bytedance.writer_assistant_flutter
+reference_resolution:
+  width: 720
+  height: 1280
+states:
+  home_page:
+    actions:
+      open_works:
+        x: 228
+        y: 1224
+        next_state: works_page
+        verify_any:
+          - 作品
+  works_page:
+    actions:
+      start_creation:
+        x: 344
+        y: 993
+        next_state: chapter_editor
+        verify_any:
+          - 下一步
+          - AI工具箱

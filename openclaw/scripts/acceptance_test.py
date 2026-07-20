@@ -203,6 +203,7 @@ def check_main_startup():
     job_ids = {j.id for j in jobs}
     expected = {
         "production_scanner", "publish_scanner",
+        "review_processor",
         "publish_plan_evening", "publish_plan_morning",
         "watchdog",
     }

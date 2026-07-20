@@ -28,3 +28,13 @@ def test_action_cannot_be_used_from_a_different_page() -> None:
 
     with pytest.raises(UiCoordinateError, match="start_creation"):
         profile.resolve("home_page", "start_creation", width=720, height=1280)
+
+
+def test_typo_confirmation_is_guarded() -> None:
+    profile = CoordinateProfile.load_default()
+
+    action = profile.resolve("typo_confirmation", "confirm", width=720, height=1280)
+
+    assert action.point == (508, 749)
+    assert action.next_state == "publish_settings"
+    assert action.requires_confirmation is True

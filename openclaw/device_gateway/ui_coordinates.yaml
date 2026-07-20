@@ -21,3 +21,43 @@ states:
         verify_any:
           - 下一步
           - AI工具箱
+  chapter_editor:
+    actions:
+      focus_chapter_number:
+        x: 145
+        y: 325
+        next_state: chapter_editor
+        verify_any:
+          - 下一步
+      focus_title:
+        x: 410
+        y: 325
+        next_state: chapter_editor
+        verify_any:
+          - 下一步
+      focus_body:
+        x: 360
+        y: 520
+        next_state: chapter_editor
+        verify_any:
+          - AI工具箱
+      next:
+        x: 640
+        y: 102
+        next_state: typo_confirmation
+        verify_any:
+          - 检测到您还有错别字未修改，是否确认提交？
+  typo_confirmation:
+    actions:
+      cancel:
+        x: 212
+        y: 749
+        next_state: chapter_editor
+        verify_any:
+          - 已保存到云端
+      confirm:
+        x: 508
+        y: 749
+        next_state: publish_settings
+        requires_confirmation: true
+        verify_any: []

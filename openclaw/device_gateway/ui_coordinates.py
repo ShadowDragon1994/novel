@@ -18,6 +18,7 @@ class ResolvedAction:
     point: tuple[int, int]
     next_state: str
     verify_any: tuple[str, ...]
+    requires_confirmation: bool
 
 
 class CoordinateProfile:
@@ -42,4 +43,5 @@ class CoordinateProfile:
             point=(x, y),
             next_state=str(definition["next_state"]),
             verify_any=tuple(str(label) for label in definition.get("verify_any", [])),
+            requires_confirmation=bool(definition.get("requires_confirmation", False)),
         )

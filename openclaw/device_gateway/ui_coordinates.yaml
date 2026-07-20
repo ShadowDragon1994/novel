@@ -102,6 +102,15 @@ states:
       confirm_publish:
         x: 360
         y: 1140
-        next_state: published
+        next_state: ai_declaration
         requires_confirmation: true
-        verify_any: []
+        verify_any:
+          - 内容是否使用AI功能
+  ai_declaration:
+    actions:
+      used_ai:
+        selector_description: 有使用AI
+        next_state: submitted_for_review
+        verify_any:
+          - 审核中
+          - 发布成功

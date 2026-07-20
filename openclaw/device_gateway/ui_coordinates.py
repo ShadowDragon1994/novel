@@ -15,7 +15,8 @@ class UiCoordinateError(ValueError):
 
 @dataclass(frozen=True)
 class ResolvedAction:
-    point: tuple[int, int]
+    point: tuple[int, int] | None
+    selector_description: str | None
     next_state: str
     verify_any: tuple[str, ...]
     requires_confirmation: bool
@@ -36,11 +37,15 @@ class CoordinateProfile:
         except KeyError:
             raise UiCoordinateError(f"action {action!r} is not configured for state {state!r}") from None
 
-        reference = self.data["reference_resolution"]
-        x = round(int(definition["x"]) * width / int(reference["width"]))
-        y = round(int(definition["y"]) * height / int(reference["height"]))
+        point = None
+        if "x" in definition and "y" in definition:
+            reference = self.data["reference_resolution"]
+            x = round(int(definition["x"]) * width / int(reference["width"]))
+            y = round(int(definition["y"]) * height / int(reference["height"]))
+            point = (x, y)
         return ResolvedAction(
-            point=(x, y),
+            point=point,
+            selector_description=definition.get("selector_description"),
             next_state=str(definition["next_state"]),
             verify_any=tuple(str(label) for label in definition.get("verify_any", [])),
             requires_confirmation=bool(definition.get("requires_confirmation", False)),

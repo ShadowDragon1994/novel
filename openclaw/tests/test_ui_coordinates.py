@@ -46,5 +46,15 @@ def test_final_publish_is_guarded() -> None:
     action = profile.resolve("publish_settings", "confirm_publish", width=720, height=1280)
 
     assert action.point == (360, 1140)
-    assert action.next_state == "published"
+    assert action.next_state == "ai_declaration"
     assert action.requires_confirmation is True
+
+
+def test_ai_declaration_uses_semantic_selector() -> None:
+    profile = CoordinateProfile.load_default()
+
+    action = profile.resolve("ai_declaration", "used_ai", width=720, height=1280)
+
+    assert action.point is None
+    assert action.selector_description == "有使用AI"
+    assert action.next_state == "submitted_for_review"

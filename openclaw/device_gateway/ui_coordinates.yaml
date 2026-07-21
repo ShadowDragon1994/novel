@@ -138,6 +138,13 @@ states:
           - 审核中
   chapter_list:
     actions:
+      start_new_chapter:
+        x: 632
+        y: 1064
+        next_state: chapter_editor
+        verify_any:
+          - 下一步
+          - 请输入正文
       verify_submitted:
         selector_description: 第{chapter_number}章 {title}
         next_state: chapter_list

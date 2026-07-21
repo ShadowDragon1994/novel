@@ -105,9 +105,16 @@ class AdbUiDriver:
         await self._pause()
 
     async def tap_description(self, description: str) -> None:
+        await self._tap_description(description, exact=True)
+
+    async def tap_description_contains(self, description: str) -> None:
+        await self._tap_description(description, exact=False)
+
+    async def _tap_description(self, description: str, *, exact: bool) -> None:
         root = await self._hierarchy()
         for node in root.iter("node"):
-            if node.attrib.get("content-desc") != description:
+            actual = node.attrib.get("content-desc", "")
+            if (exact and actual != description) or (not exact and description not in actual):
                 continue
             match = BOUNDS_PATTERN.fullmatch(node.attrib.get("bounds", ""))
             if not match:

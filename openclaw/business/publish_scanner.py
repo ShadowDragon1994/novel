@@ -8,7 +8,7 @@ from business.guard_layer import GuardLayer
 from core.config import load_settings
 from core.feishu_client import FeishuClient
 
-READY_PUBLISH_STATUS = {"待发布", "待发布/Pending Publish"}
+READY_PUBLISH_STATUS = {"待发布", "待发布/Pending Publish", "审核中", "审核中/Under Review"}
 SUCCESS_PUBLISH_STATUS = {"发布成功", "发布成功/Published", "成功/Success"}
 FINAL_PRODUCTION_STATUS = {"已定稿", "已定稿/Finalized", "已审核", "已完成"}
 LOCKED_VALUES = {"是", "是/Yes", True, "人工锁定", "已锁定"}
@@ -179,24 +179,33 @@ class PublishScanner:
     async def _mark_success(self, record: dict[str, Any], account_id: str, platform_status: str) -> None:
         fields = record.get("fields", record)
         chapter_id = str(fields["章节ID"])
-        await self.feishu_client.create_record(
-            "发布记录表",
-            {
-                "发布ID": f"pub-{chapter_id}-{datetime.now().strftime('%Y%m%d%H%M%S%f')}",
-                "章节ID": chapter_id,
-                "账号ID": account_id,
-                "发布时间": int(datetime.now().timestamp() * 1000),
-                "发布尝试状态": "成功/Success" if platform_status == "已发布" else "已提交/Submitted",
-                "失败原因": "",
-                "关联正文版本": fields.get("当前版本", ""),
-            },
+        attempt_status = "成功/Success" if platform_status == "已发布" else "已提交/Submitted"
+        records = await self.feishu_client.list_records("发布记录表")
+        already_recorded = any(
+            item.get("fields", item).get("章节ID") == chapter_id
+            and item.get("fields", item).get("发布尝试状态") == attempt_status
+            for item in records
         )
+        if not already_recorded:
+            await self.feishu_client.create_record(
+                "发布记录表",
+                {
+                    "发布ID": f"pub-{chapter_id}-{datetime.now().strftime('%Y%m%d%H%M%S%f')}",
+                    "章节ID": chapter_id,
+                    "账号ID": account_id,
+                    "发布时间": int(datetime.now().timestamp() * 1000),
+                    "发布尝试状态": attempt_status,
+                    "失败原因": "",
+                    "关联正文版本": fields.get("当前版本", ""),
+                },
+            )
         await self.guard_layer.write(
             "章节任务表",
             str(record.get("record_id") or chapter_id),
             {"发布状态": "发布成功/Published" if platform_status == "已发布" else "审核中/Under Review"},
         )
-        await self._update_account_after_success(account_id)
+        if platform_status == "已发布" and not already_recorded:
+            await self._update_account_after_success(account_id)
 
     async def _update_account_after_success(self, account_id: str) -> None:
         accounts = await self.feishu_client.list_records("账号管理表")

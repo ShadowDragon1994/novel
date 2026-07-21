@@ -43,6 +43,8 @@ class UiDriver(Protocol):
 
     async def tap_description(self, description: str) -> None: ...
 
+    async def tap_description_contains(self, description: str) -> None: ...
+
     async def press_back(self) -> None: ...
 
     async def scroll_to_top(self) -> None: ...
@@ -74,6 +76,13 @@ class FanqiePublishWorkflow:
         existing_status = self._existing_status(initial_text, chapter_label)
         if "章节管理" in initial_text and existing_status:
             return PublishResult(chapter_label=chapter_label, status=existing_status)
+        if "章节管理" in initial_text and chapter_label in initial_text and "草稿" in initial_text:
+            await self.driver.tap_description_contains(chapter_label)
+            initial_text = await self.driver.screen_text()
+        elif "章节管理" in initial_text and f"第{chapter.number}章" in initial_text:
+            raise WorkflowError(
+                f"chapter number {chapter.number} already exists with a different title"
+            )
 
         try:
             if "章节管理" in initial_text:

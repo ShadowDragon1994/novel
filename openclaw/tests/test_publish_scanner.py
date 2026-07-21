@@ -63,15 +63,16 @@ class FakeGuard:
 
 
 class FakeDevice:
-    def __init__(self, fail: bool = False) -> None:
+    def __init__(self, fail: bool = False, status: str = "审核中") -> None:
         self.fail = fail
+        self.status = status
         self.calls = []
 
     async def publish_chapter(self, chapter_id, account_id, **kwargs):
         self.calls.append((chapter_id, account_id, kwargs))
         if self.fail:
             raise RuntimeError("device failed")
-        return {"chapter_label": f"第{kwargs['chapter_number']}章 {kwargs['title']}", "status": "审核中"}
+        return {"chapter_label": f"第{kwargs['chapter_number']}章 {kwargs['title']}", "status": self.status}
 
 
 class SerialCheckingDevice(FakeDevice):
@@ -180,6 +181,30 @@ async def test_scanner_marks_success_on_device_ok() -> None:
     assert feishu.created[0][0] == "发布记录表"
     assert feishu.created[0][1]["发布尝试状态"] == "已提交/Submitted"
     assert guard.writes[0][2]["发布状态"] == "审核中/Under Review"
+
+
+@pytest.mark.asyncio
+async def test_scanner_reconciles_under_review_chapter_until_published() -> None:
+    feishu = FakeFeishu(chapters=[chapter("c1", status="审核中/Under Review")])
+    scanner, guard, _ = make_scanner(feishu, FakeDevice(status="已发布"))
+
+    assert await scanner.run_once() == ["c1"]
+
+    assert feishu.created[0][1]["发布尝试状态"] == "成功/Success"
+    assert guard.writes[0][2]["发布状态"] == "发布成功/Published"
+
+
+@pytest.mark.asyncio
+async def test_scanner_does_not_duplicate_submitted_record_during_reconciliation() -> None:
+    feishu = FakeFeishu(
+        chapters=[chapter("c1", status="审核中/Under Review")],
+        records=[{"fields": {"章节ID": "c1", "发布尝试状态": "已提交/Submitted"}}],
+    )
+    scanner, _, _ = make_scanner(feishu)
+
+    await scanner.run_once()
+
+    assert feishu.created == []
 
 
 @pytest.mark.asyncio

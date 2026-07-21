@@ -16,6 +16,7 @@ class FakeUiDriver:
         self.replacements: list[tuple[tuple[int, int], str]] = []
         self.descriptions: list[str] = []
         self.containing_descriptions: list[str] = []
+        self.right_containing_descriptions: list[str] = []
         self.back_presses = 0
         self.scrolled_to_top = 0
 
@@ -41,6 +42,10 @@ class FakeUiDriver:
 
     async def tap_description_contains(self, description: str) -> None:
         self.containing_descriptions.append(description)
+        self.current = next(self.screens)
+
+    async def tap_description_right_contains(self, description: str) -> None:
+        self.right_containing_descriptions.append(description)
         self.current = next(self.screens)
 
     async def press_back(self) -> None:
@@ -76,7 +81,7 @@ async def test_publish_reaches_exact_chapter_review_state() -> None:
     assert result.chapter_label == "第2章 化工厂深处"
     assert ((145, 325), "2") in driver.replacements
     assert ((410, 325), "化工厂深处") in driver.replacements
-    assert driver.descriptions == ["有使用AI"]
+    assert driver.descriptions == ["下一步", "有使用AI"]
     assert driver.back_presses == 0
     assert driver.scrolled_to_top == 1
 
@@ -160,6 +165,7 @@ async def test_publish_resumes_cloud_saved_editor_and_returns_to_chapter_list() 
     assert result.status == "审核中"
     assert driver.scrolled_to_top == 1
     assert ((145, 325), "2") in driver.replacements
+    assert driver.descriptions[0] == "下一步"
     assert (632, 1064) not in driver.taps
 
 
@@ -214,6 +220,32 @@ async def test_publish_checks_draft_tab_and_opens_matching_draft() -> None:
 
 
 @pytest.mark.asyncio
+async def test_publish_resumes_matching_draft_with_missing_chapter_number() -> None:
+    driver = FakeUiDriver(
+        [
+            "章节管理 草稿箱",
+            "草稿箱 第 章 守夜人觉醒 2932字 编辑 删除",
+            "请输入正文 下一步 AI工具箱",
+            "第 1 章 守夜人觉醒 正文正文正文正文正文正文 已保存到云端 2932字 下一步 AI工具箱",
+            "请选择内容检测方式",
+            "发布设置 确认发布 内容是否使用AI功能 请设置",
+            "内容是否使用AI功能 有使用AI 未使用AI",
+            "发布设置 确认发布 内容是否使用AI功能 是",
+            "确定要提交章节？",
+            "章节管理 审核中 第1章 守夜人觉醒",
+        ]
+    )
+
+    result = await FanqiePublishWorkflow(driver).publish(
+        PublishChapter(number=1, title="第一章：守夜人觉醒", content="正文" * 1000)
+    )
+
+    assert result.status == "审核中"
+    assert driver.containing_descriptions[:2] == ["草稿箱", "守夜人觉醒"]
+    assert (632, 1064) not in driver.taps
+
+
+@pytest.mark.asyncio
 async def test_publish_stops_when_chapter_number_belongs_to_different_title() -> None:
     driver = FakeUiDriver(["章节管理 草稿 第2章 另一个标题"])
 
@@ -250,7 +282,7 @@ async def test_publish_allows_content_detection_without_typo_confirmation() -> N
 
     assert result.status == "审核中"
     assert (190, 1144) in driver.taps
-    assert (580, 707) in driver.taps
+    assert driver.right_containing_descriptions == ["内容是否使用AI功能"]
 
 
 @pytest.mark.asyncio

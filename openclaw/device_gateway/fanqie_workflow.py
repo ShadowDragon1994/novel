@@ -45,6 +45,8 @@ class UiDriver(Protocol):
 
     async def tap_description_contains(self, description: str) -> None: ...
 
+    async def tap_description_right_contains(self, description: str) -> None: ...
+
     async def press_back(self) -> None: ...
 
     async def scroll_to_top(self) -> None: ...
@@ -96,6 +98,12 @@ class FanqiePublishWorkflow:
                 raise WorkflowError(
                     f"chapter number {chapter.number} already exists with a different title"
                 )
+            elif (
+                "第章" in normalized_draft
+                and normalize_semantic_text(platform_title) in normalized_draft
+            ):
+                await self.driver.tap_description_contains(platform_title)
+                initial_text = await self.driver.screen_text()
             else:
                 await self.driver.tap_description_contains("章节管理")
                 initial_text = await self.driver.screen_text()
@@ -135,7 +143,10 @@ class FanqiePublishWorkflow:
             await self.driver.wait_for_any(("已保存到云端",))
             verification_text = await self.driver.screen_text()
             self._validate_saved_content(verification_text, chapter.content)
-            next_text = await self._tap("chapter_editor", "next")
+            await self.driver.tap_description("下一步")
+            next_text = await self.driver.wait_for_any(
+                ("检测到您还有错别字未修改，是否确认提交？", "请选择内容检测方式")
+            )
             result = await self._continue_submission(next_text, chapter_label)
         except Exception as publish_error:
             try:
@@ -170,7 +181,8 @@ class FanqiePublishWorkflow:
                 if re.search(r"内容是否使用AI功能\s*是(?:\s|$)", text):
                     text = await self._tap("publish_settings", "confirm_publish")
                 else:
-                    text = await self._tap("publish_settings", "select_ai_usage")
+                    await self.driver.tap_description_right_contains("内容是否使用AI功能")
+                    text = await self.driver.screen_text()
             elif "确定要提交章节" in text:
                 text = await self._tap("final_submission_confirmation", "confirm")
             else:

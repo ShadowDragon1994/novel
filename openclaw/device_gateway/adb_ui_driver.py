@@ -86,18 +86,23 @@ class AdbUiDriver:
             await self.adb.run_device(
                 self.device_id, "shell", "am", "broadcast", "-a", "ADB_CLEAR_TEXT"
             )
-            encoded = base64.b64encode(value.encode()).decode()
-            await self.adb.run_device(
-                self.device_id,
-                "shell",
-                "am",
-                "broadcast",
-                "-a",
-                "ADB_INPUT_B64",
-                "--es",
-                "msg",
-                encoded,
-            )
+            if value.isdecimal():
+                await self.adb.run_device(
+                    self.device_id, "shell", "input", "text", value
+                )
+            else:
+                encoded = base64.b64encode(value.encode()).decode()
+                await self.adb.run_device(
+                    self.device_id,
+                    "shell",
+                    "am",
+                    "broadcast",
+                    "-a",
+                    "ADB_INPUT_B64",
+                    "--es",
+                    "msg",
+                    encoded,
+                )
         except AdbError as exc:
             raise WorkflowError(f"failed to enter text through ADB keyboard: {exc}") from exc
         await self._pause()
@@ -108,7 +113,12 @@ class AdbUiDriver:
     async def tap_description_contains(self, description: str) -> None:
         await self._tap_description(description, exact=False)
 
-    async def _tap_description(self, description: str, *, exact: bool) -> None:
+    async def tap_description_right_contains(self, description: str) -> None:
+        await self._tap_description(description, exact=False, at_right=True)
+
+    async def _tap_description(
+        self, description: str, *, exact: bool, at_right: bool = False
+    ) -> None:
         root = await self._hierarchy()
         for node in root.iter("node"):
             actual = node.attrib.get("content-desc", "")
@@ -122,7 +132,8 @@ class AdbUiDriver:
             if not match:
                 break
             left, top, right, bottom = (int(value) for value in match.groups())
-            await self.tap(((left + right) // 2, (top + bottom) // 2))
+            x = max(left, right - 28) if at_right else (left + right) // 2
+            await self.tap((x, (top + bottom) // 2))
             return
         raise WorkflowError(f"UI description was not found: {description}")
 

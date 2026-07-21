@@ -69,6 +69,19 @@ async def test_tap_description_contains_ignores_spacing_and_colon_variants() -> 
 
 
 @pytest.mark.asyncio
+async def test_tap_description_right_contains_avoids_center_info_icon() -> None:
+    adb = FakeAdb(
+        ['<hierarchy><node text="" content-desc="内容是否使用AI功能\n请设置" '
+         'bounds="[72,522][648,650]" /></hierarchy>']
+    )
+    driver = AdbUiDriver("cloud-1", adb=adb)
+
+    await driver.tap_description_right_contains("内容是否使用AI功能")
+
+    assert adb.commands[-1] == ("cloud-1", "shell", "input", "tap", "620", "586")
+
+
+@pytest.mark.asyncio
 async def test_replace_text_uses_utf8_base64_keyboard_broadcast() -> None:
     adb = FakeAdb()
     driver = AdbUiDriver("cloud-1", adb=adb)
@@ -95,3 +108,13 @@ async def test_replace_text_uses_utf8_base64_keyboard_broadcast() -> None:
         "msg",
         encoded,
     ) in adb.commands
+
+
+@pytest.mark.asyncio
+async def test_replace_numeric_text_uses_native_adb_input() -> None:
+    adb = FakeAdb()
+    driver = AdbUiDriver("cloud-1", adb=adb)
+
+    await driver.replace_text((145, 325), "1")
+
+    assert ("cloud-1", "shell", "input", "text", "1") in adb.commands

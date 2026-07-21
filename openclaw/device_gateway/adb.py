@@ -32,7 +32,18 @@ class AdbClient:
     async def run_device(self, device_id: str, *args: str) -> str:
         if not DEVICE_ID_PATTERN.fullmatch(device_id):
             raise AdbError("invalid device_id")
+        try:
+            return await self._run("-s", device_id, *args)
+        except AdbError as exc:
+            if not self._is_disconnected_error(exc):
+                raise
+        await self._run("connect", device_id)
         return await self._run("-s", device_id, *args)
+
+    @staticmethod
+    def _is_disconnected_error(exc: AdbError) -> bool:
+        detail = str(exc).lower()
+        return any(marker in detail for marker in ("error: closed", "device offline", "not found"))
 
     async def _run(self, *args: str) -> str:
         try:

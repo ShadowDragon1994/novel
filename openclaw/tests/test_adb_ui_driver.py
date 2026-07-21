@@ -76,15 +76,22 @@ async def test_replace_text_uses_utf8_base64_keyboard_broadcast() -> None:
     await driver.replace_text((410, 325), "化工厂深处")
 
     encoded = base64.b64encode("化工厂深处".encode()).decode()
-    assert ("cloud-1", "shell", "am", "broadcast", "-a", "ADB_KEYBOARD_CLEAR_TEXT") in adb.commands
+    assert (
+        "cloud-1",
+        "shell",
+        "ime",
+        "set",
+        "com.android.adbkeyboard/.AdbIME",
+    ) in adb.commands
+    assert ("cloud-1", "shell", "am", "broadcast", "-a", "ADB_CLEAR_TEXT") in adb.commands
     assert (
         "cloud-1",
         "shell",
         "am",
         "broadcast",
         "-a",
-        "ADB_KEYBOARD_INPUT_TEXT",
+        "ADB_INPUT_B64",
         "--es",
-        "text",
+        "msg",
         encoded,
     ) in adb.commands

@@ -11,7 +11,7 @@ from device_gateway.fanqie_workflow import WorkflowError
 from device_gateway.ui_coordinates import normalize_semantic_text
 
 BOUNDS_PATTERN = re.compile(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]")
-ADB_KEYBOARD = "com.github.uiautomator/.AdbKeyboard"
+ADB_KEYBOARD = "com.android.adbkeyboard/.AdbIME"
 UI_DUMP_PATH = "/sdcard/openclaw_ui.xml"
 
 
@@ -84,7 +84,7 @@ class AdbUiDriver:
             await self.adb.run_device(self.device_id, "shell", "ime", "enable", ADB_KEYBOARD)
             await self.adb.run_device(self.device_id, "shell", "ime", "set", ADB_KEYBOARD)
             await self.adb.run_device(
-                self.device_id, "shell", "am", "broadcast", "-a", "ADB_KEYBOARD_CLEAR_TEXT"
+                self.device_id, "shell", "am", "broadcast", "-a", "ADB_CLEAR_TEXT"
             )
             encoded = base64.b64encode(value.encode()).decode()
             await self.adb.run_device(
@@ -93,13 +93,10 @@ class AdbUiDriver:
                 "am",
                 "broadcast",
                 "-a",
-                "ADB_KEYBOARD_INPUT_TEXT",
+                "ADB_INPUT_B64",
                 "--es",
-                "text",
+                "msg",
                 encoded,
-            )
-            await self.adb.run_device(
-                self.device_id, "shell", "am", "broadcast", "-a", "ADB_KEYBOARD_HIDE"
             )
         except AdbError as exc:
             raise WorkflowError(f"failed to enter text through ADB keyboard: {exc}") from exc

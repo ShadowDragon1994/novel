@@ -26,7 +26,7 @@ class DeviceController:
         chapter_number: int | None = None,
         title: str | None = None,
         content: str | None = None,
-    ) -> None:
+    ) -> dict[str, str]:
         if not self.endpoint:
             raise DeviceNotConfiguredError(
                 "HONGSHOUZHI_ENDPOINT is not configured; publishing was not attempted"
@@ -47,6 +47,8 @@ class DeviceController:
         )
         response = await self.http_client.post(f"{self.endpoint}/publish", json=payload)
         response.raise_for_status()
+        result = response.json()
+        return {"chapter_label": str(result["chapter_label"]), "status": str(result["status"])}
 
     async def close(self) -> None:
         if self._owns_client:

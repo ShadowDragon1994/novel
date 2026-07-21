@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime
 from typing import Any
 
@@ -31,8 +30,12 @@ class PublishScanner:
 
     async def run_once(self, *, now: datetime | None = None) -> list[str]:
         ready = await self._ready_chapters(now or datetime.now())
-        results = await asyncio.gather(*(self._publish_one(record) for record in ready), return_exceptions=True)
-        return [result for result in results if isinstance(result, str)]
+        results = []
+        for record in ready:
+            result = await self._publish_one(record)
+            if result:
+                results.append(result)
+        return results
 
     async def _ready_chapters(self, now: datetime) -> list[dict[str, Any]]:
         records = await self.feishu_client.list_records("章节任务表")
@@ -66,8 +69,22 @@ class PublishScanner:
             await self._mark_failure(record, RuntimeError("missing account_id"), account_id="")
             return None
         try:
-            await self.device.publish_chapter(chapter_id, account_id)
-            await self._mark_success(record, account_id)
+            device_id = await self._resolve_device_id(account_id)
+            content = await self._load_final_content(chapter_id)
+            if not device_id:
+                raise RuntimeError("missing hongshouzhi device_id")
+            if not content:
+                raise RuntimeError("missing final chapter content")
+            result = await self.device.publish_chapter(
+                chapter_id,
+                account_id,
+                device_id=device_id,
+                platform="fanqie",
+                chapter_number=int(fields.get("章节号") or 0),
+                title=str(fields.get("章节名") or ""),
+                content=content,
+            )
+            await self._mark_success(record, account_id, result["status"])
             return chapter_id
         except Exception as exc:
             await self._mark_failure(record, exc, account_id=account_id)
@@ -122,6 +139,30 @@ class PublishScanner:
                 return healthy and enabled and stage not in {"养号期", "养号期/Warmup"}
         return False
 
+    async def _resolve_device_id(self, account_id: str) -> str:
+        accounts = await self.feishu_client.list_records("账号管理表")
+        for record in accounts:
+            fields = record.get("fields", record)
+            current_id = str(fields.get("账号ID") or fields.get("ID") or record.get("record_id") or "")
+            if current_id == account_id:
+                return str(fields.get("红手指设备ID") or "")
+        return ""
+
+    async def _load_final_content(self, chapter_id: str) -> str:
+        versions = await self.feishu_client.list_records("正文版本表")
+        candidates = [
+            record.get("fields", record)
+            for record in versions
+            if record.get("fields", record).get("章节ID") == chapter_id
+            and (
+                record.get("fields", record).get("是否当前最终版") is True
+                or record.get("fields", record).get("版本类型") == "校对稿"
+            )
+        ]
+        if not candidates:
+            return ""
+        return str(candidates[-1].get("版本内容") or "")
+
     async def _set_account_health(self, account_id: str, status: str) -> None:
         accounts = await self.feishu_client.list_records("账号管理表")
         for record in accounts:
@@ -135,7 +176,7 @@ class PublishScanner:
                 )
                 return
 
-    async def _mark_success(self, record: dict[str, Any], account_id: str) -> None:
+    async def _mark_success(self, record: dict[str, Any], account_id: str, platform_status: str) -> None:
         fields = record.get("fields", record)
         chapter_id = str(fields["章节ID"])
         await self.feishu_client.create_record(
@@ -145,7 +186,7 @@ class PublishScanner:
                 "章节ID": chapter_id,
                 "账号ID": account_id,
                 "发布时间": int(datetime.now().timestamp() * 1000),
-                "发布尝试状态": "成功/Success",
+                "发布尝试状态": "成功/Success" if platform_status == "已发布" else "已提交/Submitted",
                 "失败原因": "",
                 "关联正文版本": fields.get("当前版本", ""),
             },
@@ -153,7 +194,7 @@ class PublishScanner:
         await self.guard_layer.write(
             "章节任务表",
             str(record.get("record_id") or chapter_id),
-            {"发布状态": "发布成功/Published"},
+            {"发布状态": "发布成功/Published" if platform_status == "已发布" else "审核中/Under Review"},
         )
         await self._update_account_after_success(account_id)
 

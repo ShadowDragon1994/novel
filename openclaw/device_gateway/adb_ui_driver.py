@@ -8,6 +8,7 @@ from typing import Protocol
 
 from device_gateway.adb import AdbClient, AdbError
 from device_gateway.fanqie_workflow import WorkflowError
+from device_gateway.ui_coordinates import normalize_semantic_text
 
 BOUNDS_PATTERN = re.compile(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]")
 ADB_KEYBOARD = "com.github.uiautomator/.AdbKeyboard"
@@ -114,7 +115,11 @@ class AdbUiDriver:
         root = await self._hierarchy()
         for node in root.iter("node"):
             actual = node.attrib.get("content-desc", "")
-            if (exact and actual != description) or (not exact and description not in actual):
+            if exact:
+                matches = actual == description
+            else:
+                matches = normalize_semantic_text(description) in normalize_semantic_text(actual)
+            if not matches:
                 continue
             match = BOUNDS_PATTERN.fullmatch(node.attrib.get("bounds", ""))
             if not match:

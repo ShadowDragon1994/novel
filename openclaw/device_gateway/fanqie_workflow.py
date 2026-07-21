@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from device_gateway.device_recovery import DeviceRecoveryError, DeviceRecoveryManager
-from device_gateway.ui_coordinates import CoordinateProfile, ResolvedAction
+from device_gateway.ui_coordinates import CoordinateProfile, ResolvedAction, normalize_semantic_text
 
 
 class WorkflowError(RuntimeError):
@@ -56,6 +56,9 @@ class FanqiePublishWorkflow:
         self.profile = profile or CoordinateProfile.load_default()
         self.recovery = DeviceRecoveryManager(driver)
 
+    async def recover_device(self) -> None:
+        await self.recovery.recover()
+
     def _action(self, state: str, action: str) -> ResolvedAction:
         return self.profile.resolve(state, action, width=self.driver.width, height=self.driver.height)
 
@@ -76,10 +79,12 @@ class FanqiePublishWorkflow:
         existing_status = self._existing_status(initial_text, chapter_label)
         if "章节管理" in initial_text and existing_status:
             return PublishResult(chapter_label=chapter_label, status=existing_status)
-        if "章节管理" in initial_text and chapter_label in initial_text and "草稿" in initial_text:
+        normalized_initial = normalize_semantic_text(initial_text)
+        normalized_label = normalize_semantic_text(chapter_label)
+        if "章节管理" in initial_text and normalized_label in normalized_initial and "草稿" in initial_text:
             await self.driver.tap_description_contains(chapter_label)
             initial_text = await self.driver.screen_text()
-        elif "章节管理" in initial_text and f"第{chapter.number}章" in initial_text:
+        elif "章节管理" in initial_text and f"第{chapter.number}章" in normalized_initial:
             raise WorkflowError(
                 f"chapter number {chapter.number} already exists with a different title"
             )
@@ -163,7 +168,7 @@ class FanqiePublishWorkflow:
 
     @staticmethod
     def _existing_status(text: str, chapter_label: str) -> str | None:
-        if chapter_label not in text:
+        if normalize_semantic_text(chapter_label) not in normalize_semantic_text(text):
             return None
         if "已发布" in text:
             return "已发布"

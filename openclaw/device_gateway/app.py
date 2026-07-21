@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from core.config import CONFIG_DIR
 from device_gateway.adb import AdbClient, AdbError
 from device_gateway.adb_ui_driver import AdbUiDriver
+from device_gateway.device_recovery import DeviceRecoveryError
 from device_gateway.fanqie_workflow import (
     DeviceQuarantinedError,
     FanqiePublishWorkflow,
@@ -29,6 +30,8 @@ class AdbOperations(Protocol):
 
 class ChapterPublisher(Protocol):
     async def publish(self, chapter: PublishChapter) -> PublishResult: ...
+
+    async def recover_device(self) -> None: ...
 
 
 class PublishRequest(BaseModel):
@@ -101,6 +104,25 @@ def create_app(
         except WorkflowError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         return {"chapter_label": result.chapter_label, "status": result.status}
+
+    @app.post("/devices/{device_id}/recover")
+    async def recover_device(device_id: str) -> dict[str, str]:
+        try:
+            state = await adb_client.device_state(device_id)
+        except AdbError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        if state != "device":
+            raise HTTPException(status_code=503, detail=f"device is not connected: {state}")
+        if workflow_factory is None:
+            raise HTTPException(status_code=503, detail="publishing workflow is not configured")
+        try:
+            async with device_locks[device_id]:
+                await workflow_factory(device_id).recover_device()
+        except (WorkflowError, DeviceRecoveryError) as exc:
+            quarantined_devices.add(device_id)
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        quarantined_devices.discard(device_id)
+        return {"device_id": device_id, "state": "ready"}
 
     return app
 

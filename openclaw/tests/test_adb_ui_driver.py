@@ -57,6 +57,18 @@ async def test_tap_description_contains_uses_matching_accessibility_node() -> No
 
 
 @pytest.mark.asyncio
+async def test_tap_description_contains_ignores_spacing_and_colon_variants() -> None:
+    adb = FakeAdb(
+        ['<hierarchy><node text="" content-desc="第​2​章：化工厂深处\n草稿" bounds="[72,900][648,1016]" /></hierarchy>']
+    )
+    driver = AdbUiDriver("cloud-1", adb=adb)
+
+    await driver.tap_description_contains("第2章 化工厂深处")
+
+    assert adb.commands[-1] == ("cloud-1", "shell", "input", "tap", "360", "958")
+
+
+@pytest.mark.asyncio
 async def test_replace_text_uses_utf8_base64_keyboard_broadcast() -> None:
     adb = FakeAdb()
     driver = AdbUiDriver("cloud-1", adb=adb)

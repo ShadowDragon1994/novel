@@ -42,9 +42,16 @@ class SerialPublisher(FakePublisher):
 
 
 class QuarantiningPublisher(FakePublisher):
+    def __init__(self) -> None:
+        super().__init__()
+        self.recovered = False
+
     async def publish(self, chapter):
         self.requests.append(chapter)
         raise DeviceQuarantinedError("device recovery failed")
+
+    async def recover_device(self) -> None:
+        self.recovered = True
 
 
 @pytest.mark.asyncio
@@ -180,3 +187,25 @@ async def test_publish_quarantines_device_after_failed_recovery() -> None:
     assert first.status_code == 503
     assert second.json()["detail"] == "device is quarantined and requires recovery"
     assert len(publisher.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_recover_endpoint_clears_device_quarantine_after_verified_reset() -> None:
+    publisher = QuarantiningPublisher()
+    app = create_app(adb=FakeAdb(), workflow_factory=lambda _device_id: publisher)
+    payload = {
+        "chapter_id": "chapter-2",
+        "account_id": "account-1",
+        "device_id": "cloud-1",
+        "chapter_number": 2,
+        "title": "化工厂深处",
+        "content": "正文" * 1000,
+    }
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://gateway") as client:
+        await client.post("/publish", json=payload)
+        recovered = await client.post("/devices/cloud-1/recover")
+
+    assert recovered.status_code == 200
+    assert recovered.json() == {"device_id": "cloud-1", "state": "ready"}
+    assert publisher.recovered is True

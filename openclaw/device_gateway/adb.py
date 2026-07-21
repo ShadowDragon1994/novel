@@ -29,6 +29,11 @@ class AdbClient:
             raise AdbError("invalid device_id")
         return (await self._run("-s", device_id, "get-state")).strip()
 
+    async def run_device(self, device_id: str, *args: str) -> str:
+        if not DEVICE_ID_PATTERN.fullmatch(device_id):
+            raise AdbError("invalid device_id")
+        return await self._run("-s", device_id, *args)
+
     async def _run(self, *args: str) -> str:
         try:
             process = await asyncio.create_subprocess_exec(

@@ -23,6 +23,7 @@ class DeviceController:
         *,
         device_id: str | None = None,
         platform: str | None = None,
+        chapter_number: int | None = None,
         title: str | None = None,
         content: str | None = None,
     ) -> None:
@@ -30,13 +31,14 @@ class DeviceController:
             raise DeviceNotConfiguredError(
                 "HONGSHOUZHI_ENDPOINT is not configured; publishing was not attempted"
             )
-        payload = {"chapter_id": chapter_id, "account_id": account_id}
+        payload: dict[str, str | int] = {"chapter_id": chapter_id, "account_id": account_id}
         payload.update(
             {
                 key: value
                 for key, value in {
                     "device_id": device_id,
                     "platform": platform,
+                    "chapter_number": chapter_number,
                     "title": title,
                     "content": content,
                 }.items()

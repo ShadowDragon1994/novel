@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from device_gateway.app import create_app
+from device_gateway.fanqie_workflow import PublishResult
 
 
 class FakeAdb:
@@ -12,6 +13,15 @@ class FakeAdb:
 
     async def device_state(self, device_id: str) -> str:
         return "device" if device_id == "cloud-1" else "offline"
+
+
+class FakePublisher:
+    def __init__(self) -> None:
+        self.requests = []
+
+    async def publish(self, chapter):
+        self.requests.append(chapter)
+        return PublishResult(chapter_label=f"第{chapter.number}章 {chapter.title}", status="审核中")
 
 
 @pytest.mark.asyncio
@@ -81,3 +91,27 @@ async def test_publish_uses_configured_default_device_id() -> None:
 
     assert response.status_code == 503
     assert response.json()["detail"] == "publishing workflow is not configured"
+
+
+@pytest.mark.asyncio
+async def test_publish_runs_configured_workflow_and_returns_verified_result() -> None:
+    publisher = FakePublisher()
+    transport = httpx.ASGITransport(
+        app=create_app(adb=FakeAdb(), workflow_factory=lambda _device_id: publisher)
+    )
+    async with httpx.AsyncClient(transport=transport, base_url="http://gateway") as client:
+        response = await client.post(
+            "/publish",
+            json={
+                "chapter_id": "chapter-2",
+                "account_id": "account-1",
+                "device_id": "cloud-1",
+                "chapter_number": 2,
+                "title": "化工厂深处",
+                "content": "正文" * 1000,
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {"chapter_label": "第2章 化工厂深处", "status": "审核中"}
+    assert publisher.requests[0].number == 2

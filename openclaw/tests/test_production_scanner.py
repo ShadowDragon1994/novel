@@ -324,4 +324,4 @@ async def test_production_scanner_writes_final_version_metadata(tmp_path: Path) 
     await scanner.run_once()
     fields = guard.writes[0][2]
     assert fields["最终字数"] == 4
-    assert fields["当前版本"] == "校对稿"
+    assert fields["当前版本"] == 1

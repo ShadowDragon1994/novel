@@ -132,7 +132,7 @@ class ProductionScanner:
                     review_fields.update(
                         {
                             "最终字数": len(final_content),
-                            "当前版本": getattr(getattr(pipeline_result, "final_step", None), "value", "校对稿"),
+                            "当前版本": int(fields.get("当前版本") or 1),
                             "上下文哈希": hashlib.sha256(final_content.encode("utf-8")).hexdigest(),
                         }
                     )

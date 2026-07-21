@@ -23,6 +23,12 @@ states:
           - AI工具箱
   chapter_editor:
     actions:
+      dismiss_night_notice:
+        x: 635
+        y: 314
+        next_state: chapter_editor
+        verify_any:
+          - 请输入正文
       focus_chapter_number:
         x: 145
         y: 325
@@ -81,6 +87,13 @@ states:
           - 确认发布
   publish_settings:
     actions:
+      select_ai_usage:
+        x: 580
+        y: 585
+        next_state: ai_declaration
+        verify_any:
+          - 有使用AI
+          - 未使用AI
       choose_cover:
         x: 360
         y: 566
@@ -102,15 +115,31 @@ states:
       confirm_publish:
         x: 360
         y: 1140
-        next_state: ai_declaration
+        next_state: final_submission_confirmation
         requires_confirmation: true
         verify_any:
-          - 内容是否使用AI功能
+          - 确定要提交章节？
   ai_declaration:
     actions:
       used_ai:
         selector_description: 有使用AI
-        next_state: submitted_for_review
+        next_state: publish_settings
+        verify_any:
+          - 内容是否使用AI功能
+          - 是
+  final_submission_confirmation:
+    actions:
+      confirm:
+        x: 508
+        y: 840
+        next_state: chapter_list
+        requires_confirmation: true
         verify_any:
           - 审核中
-          - 发布成功
+  chapter_list:
+    actions:
+      verify_submitted:
+        selector_description: 第{chapter_number}章 {title}
+        next_state: chapter_list
+        verify_any:
+          - 审核中

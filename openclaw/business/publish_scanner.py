@@ -119,12 +119,28 @@ class PublishScanner:
                     linked = linked[0]
                 if isinstance(linked, dict):
                     linked = linked.get("record_id") or linked.get("id") or linked.get("text") or ""
-                return str(linked)
+                linked_id = str(linked)
+                accounts = await self.feishu_client.list_records("账号管理表")
+                for account in accounts:
+                    if str(account.get("record_id") or "") != linked_id:
+                        continue
+                    account_fields = account.get("fields", account)
+                    return str(
+                        account_fields.get("账号ID")
+                        or account_fields.get("ID")
+                        or linked_id
+                    )
+                return linked_id
         accounts = await self.feishu_client.list_records("账号管理表")
         for record in accounts:
             fields = record.get("fields", record)
             if str(fields.get("绑定小说ID") or "") == novel_id:
-                return str(fields.get("账号ID") or record.get("record_id") or "")
+                return str(
+                    fields.get("账号ID")
+                    or fields.get("ID")
+                    or record.get("record_id")
+                    or ""
+                )
         return ""
 
     async def _account_is_healthy(self, account_id: str) -> bool:

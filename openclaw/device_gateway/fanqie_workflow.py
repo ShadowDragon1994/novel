@@ -74,11 +74,31 @@ class FanqiePublishWorkflow:
     async def publish(self, chapter: PublishChapter) -> PublishResult:
         if chapter.number < 1 or not chapter.title.strip() or not chapter.content.strip():
             raise WorkflowError("chapter number, title and content are required")
-        chapter_label = f"第{chapter.number}章 {chapter.title.strip()}"
+        platform_title = self._platform_title(chapter.title)
+        chapter_label = f"第{chapter.number}章 {platform_title}"
         initial_text = await self.driver.screen_text()
         existing_status = self._existing_status(initial_text, chapter_label)
         if "章节管理" in initial_text and existing_status:
             return PublishResult(chapter_label=chapter_label, status=existing_status)
+        if "章节管理" in initial_text and "草稿箱" in initial_text:
+            draft_text = initial_text
+            if "编辑" not in draft_text or "删除" not in draft_text:
+                await self.driver.tap_description_contains("草稿箱")
+                draft_text = await self.driver.screen_text()
+            normalized_draft = normalize_semantic_text(draft_text)
+            chapter_number_label = f"第{chapter.number}章"
+            if chapter_number_label in normalized_draft and normalize_semantic_text(
+                platform_title
+            ) in normalized_draft:
+                await self.driver.tap_description_contains(platform_title)
+                initial_text = await self.driver.screen_text()
+            elif chapter_number_label in normalized_draft:
+                raise WorkflowError(
+                    f"chapter number {chapter.number} already exists with a different title"
+                )
+            else:
+                await self.driver.tap_description_contains("章节管理")
+                initial_text = await self.driver.screen_text()
         normalized_initial = normalize_semantic_text(initial_text)
         normalized_label = normalize_semantic_text(chapter_label)
         if "章节管理" in initial_text and normalized_label in normalized_initial and "草稿" in initial_text:
@@ -104,7 +124,7 @@ class FanqiePublishWorkflow:
             await self.driver.scroll_to_top()
             for action_name, value in (
                 ("focus_chapter_number", str(chapter.number)),
-                ("focus_title", chapter.title.strip()),
+                ("focus_title", platform_title),
                 ("focus_body", chapter.content.strip()),
             ):
                 action = self._action("chapter_editor", action_name)
@@ -114,21 +134,16 @@ class FanqiePublishWorkflow:
 
             await self.driver.wait_for_any(("已保存到云端",))
             verification_text = await self.driver.screen_text()
-            normalized = "".join(verification_text.split())
-            expected_heading = f"第{chapter.number}章{chapter.title.strip()}"
-            if expected_heading not in normalized:
-                raise WorkflowError(f"chapter fields were not saved correctly: {expected_heading}")
-            content_prefix = "".join(chapter.content.split())[:12]
-            if content_prefix and content_prefix not in normalized:
-                raise WorkflowError("chapter body was not saved correctly")
+            self._validate_saved_content(verification_text, chapter.content)
             next_text = await self._tap("chapter_editor", "next")
             result = await self._continue_submission(next_text, chapter_label)
-        except Exception:
+        except Exception as publish_error:
             try:
                 await self.recovery.recover()
             except DeviceRecoveryError as recovery_error:
                 raise DeviceQuarantinedError(
-                    f"publishing failed and device recovery failed: {recovery_error}"
+                    "publishing failed "
+                    f"({publish_error}) and device recovery failed: {recovery_error}"
                 ) from recovery_error
             raise
         await self.recovery.recover()
@@ -168,10 +183,35 @@ class FanqiePublishWorkflow:
 
     @staticmethod
     def _existing_status(text: str, chapter_label: str) -> str | None:
-        if normalize_semantic_text(chapter_label) not in normalize_semantic_text(text):
+        if "草稿箱" in text and "编辑" in text and "删除" in text:
             return None
-        if "已发布" in text:
-            return "已发布"
-        if "审核中" in text:
-            return "审核中"
-        return None
+        normalized_text = normalize_semantic_text(text)
+        normalized_label = normalize_semantic_text(chapter_label)
+        label_index = normalized_text.find(normalized_label)
+        if label_index < 0:
+            return None
+        prefix = normalized_text[:label_index]
+        candidates = (
+            (prefix.rfind("审核中"), "审核中"),
+            (prefix.rfind("已发布"), "已发布"),
+        )
+        status_index, status = max(candidates, key=lambda item: item[0])
+        return status if status_index >= 0 else None
+
+    @staticmethod
+    def _platform_title(title: str) -> str:
+        stripped = title.strip()
+        without_prefix = re.sub(r"^第[^章]{1,12}章[\s:：-]*", "", stripped)
+        return without_prefix or stripped
+
+    @staticmethod
+    def _validate_saved_content(screen_text: str, content: str) -> None:
+        word_counts = [int(value) for value in re.findall(r"(\d+)字", screen_text)]
+        if not word_counts:
+            raise WorkflowError("saved chapter word count is unavailable")
+        expected_length = len("".join(content.split()))
+        observed = max(word_counts)
+        if observed < max(100, expected_length // 2) or observed > expected_length * 7 // 4:
+            raise WorkflowError(
+                f"saved chapter word count is outside the expected range: {observed}"
+            )

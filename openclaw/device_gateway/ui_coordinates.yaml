@@ -53,6 +53,7 @@ states:
         next_state: typo_confirmation
         verify_any:
           - 检测到您还有错别字未修改，是否确认提交？
+          - 请选择内容检测方式
   typo_confirmation:
     actions:
       cancel:
@@ -89,7 +90,7 @@ states:
     actions:
       select_ai_usage:
         x: 580
-        y: 585
+        y: 707
         next_state: ai_declaration
         verify_any:
           - 有使用AI
@@ -119,6 +120,9 @@ states:
         requires_confirmation: true
         verify_any:
           - 确定要提交章节？
+          - 章节管理
+          - 审核中
+          - 已发布
   ai_declaration:
     actions:
       used_ai:

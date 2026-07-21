@@ -260,6 +260,48 @@ async def test_scanner_resolves_account_from_account_table() -> None:
 
 
 @pytest.mark.asyncio
+async def test_scanner_resolves_id_field_from_account_table() -> None:
+    feishu = FakeFeishu(
+        chapters=[chapter("c1")],
+        novels=[{"fields": {"小说ID": "n1", "自动发布开关": True}}],
+        accounts=[{
+            "record_id": "acc-rec",
+            "fields": {"绑定小说ID": "n1", "ID": "acc-2", "红手指设备ID": "cloud-2"},
+        }],
+    )
+    scanner, _, device = make_scanner(feishu)
+
+    await scanner.run_once()
+
+    assert device.calls[0][:2] == ("c1", "acc-2")
+    assert device.calls[0][2]["device_id"] == "cloud-2"
+
+
+@pytest.mark.asyncio
+async def test_scanner_resolves_business_account_id_from_feishu_link() -> None:
+    feishu = FakeFeishu(
+        chapters=[chapter("c1")],
+        novels=[{
+            "fields": {
+                "小说ID": "n1",
+                "关联账号": [{"record_id": "acc-rec"}],
+                "自动发布开关": True,
+            }
+        }],
+        accounts=[{
+            "record_id": "acc-rec",
+            "fields": {"ID": "acc-2", "账号状态": "正常/Normal", "红手指设备ID": "cloud-2"},
+        }],
+    )
+    scanner, _, device = make_scanner(feishu)
+
+    await scanner.run_once()
+
+    assert device.calls[0][:2] == ("c1", "acc-2")
+    assert device.calls[0][2]["device_id"] == "cloud-2"
+
+
+@pytest.mark.asyncio
 async def test_scanner_missing_account_marks_failure() -> None:
     feishu = FakeFeishu(chapters=[chapter("c1")], novels=[], accounts=[])
     scanner, guard, device = make_scanner(feishu)

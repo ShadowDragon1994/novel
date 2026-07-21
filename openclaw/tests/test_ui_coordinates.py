@@ -75,7 +75,7 @@ def test_ai_usage_is_selected_from_publish_settings() -> None:
 
     action = profile.resolve("publish_settings", "select_ai_usage", width=720, height=1280)
 
-    assert action.point == (580, 585)
+    assert action.point == (580, 707)
     assert action.next_state == "ai_declaration"
     assert action.verify_any == ("有使用AI", "未使用AI")
 
@@ -89,6 +89,14 @@ def test_night_submission_confirmation_is_guarded() -> None:
     assert action.next_state == "chapter_list"
     assert action.requires_confirmation is True
     assert action.verify_any == ("审核中",)
+
+
+def test_publish_confirmation_allows_direct_return_to_chapter_list() -> None:
+    profile = CoordinateProfile.load_default()
+
+    action = profile.resolve("publish_settings", "confirm_publish", width=720, height=1280)
+
+    assert action.verify_any == ("确定要提交章节？", "章节管理", "审核中", "已发布")
 
 
 def test_chapter_list_terminal_state_uses_semantic_verification() -> None:

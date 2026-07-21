@@ -116,6 +116,30 @@ async def test_publish_reconciles_existing_submitted_chapter_without_creating_du
 
 
 @pytest.mark.asyncio
+async def test_publish_uses_status_associated_with_target_chapter() -> None:
+    driver = FakeUiDriver(
+        ["章节管理 审核中 第2章 化工厂深处 已发布 第1章 灵气复苏"]
+    )
+
+    result = await FanqiePublishWorkflow(driver).publish(
+        PublishChapter(number=2, title="化工厂深处", content="正文" * 1000)
+    )
+
+    assert result.status == "审核中"
+
+
+@pytest.mark.asyncio
+async def test_publish_strips_redundant_chapter_prefix_from_platform_title() -> None:
+    driver = FakeUiDriver(["章节管理 审核中 第2章 化工厂深处"])
+
+    result = await FanqiePublishWorkflow(driver).publish(
+        PublishChapter(number=2, title="第二章：化工厂深处", content="正文" * 1000)
+    )
+
+    assert result.chapter_label == "第2章 化工厂深处"
+
+
+@pytest.mark.asyncio
 async def test_publish_resumes_cloud_saved_editor_and_returns_to_chapter_list() -> None:
     driver = FakeUiDriver(
         [
@@ -143,7 +167,7 @@ async def test_publish_resumes_cloud_saved_editor_and_returns_to_chapter_list() 
 async def test_publish_opens_existing_draft_instead_of_creating_duplicate() -> None:
     driver = FakeUiDriver(
         [
-            "章节管理 草稿 第2章 化工厂深处",
+            "章节管理 草稿箱 审核中 第2章 化工厂深处 编辑 删除",
             "第 2 章 化工厂深处 正文正文正文正文正文正文 已保存到云端 3050字 下一步 AI工具箱",
             "检测到您还有错别字未修改，是否确认提交？",
             "请选择内容检测方式",
@@ -159,7 +183,33 @@ async def test_publish_opens_existing_draft_instead_of_creating_duplicate() -> N
         PublishChapter(number=2, title="化工厂深处", content="正文" * 1000)
     )
 
-    assert driver.containing_descriptions == ["第2章 化工厂深处"]
+    assert driver.containing_descriptions == ["化工厂深处"]
+    assert (632, 1064) not in driver.taps
+
+
+@pytest.mark.asyncio
+async def test_publish_checks_draft_tab_and_opens_matching_draft() -> None:
+    driver = FakeUiDriver(
+        [
+            "章节管理 草稿箱",
+            "草稿箱 第2章 第二章：化工厂深处 3050字 编辑 删除",
+            "请输入正文 下一步 AI工具箱",
+            "第 2 章 化工厂深处 正文正文正文正文正文正文 已保存到云端 3050字 下一步 AI工具箱",
+            "检测到您还有错别字未修改，是否确认提交？",
+            "请选择内容检测方式",
+            "发布设置 确认发布 内容是否使用AI功能 请设置",
+            "内容是否使用AI功能 有使用AI 未使用AI",
+            "发布设置 确认发布 内容是否使用AI功能 是",
+            "确定要提交章节？",
+            "章节管理 审核中 第2章 化工厂深处",
+        ]
+    )
+
+    await FanqiePublishWorkflow(driver).publish(
+        PublishChapter(number=2, title="第二章：化工厂深处", content="正文" * 1000)
+    )
+
+    assert driver.containing_descriptions[:2] == ["草稿箱", "化工厂深处"]
     assert (632, 1064) not in driver.taps
 
 
@@ -173,3 +223,48 @@ async def test_publish_stops_when_chapter_number_belongs_to_different_title() ->
         )
 
     assert driver.taps == []
+
+
+def test_saved_content_validation_rejects_truncated_body() -> None:
+    with pytest.raises(WorkflowError, match="word count"):
+        FanqiePublishWorkflow._validate_saved_content("已保存到云端 20字", "正文" * 1000)
+
+
+@pytest.mark.asyncio
+async def test_publish_allows_content_detection_without_typo_confirmation() -> None:
+    driver = FakeUiDriver(
+        [
+            "第 2 章 化工厂深处 正文正文正文正文正文正文 已保存到云端 3050字 下一步 AI工具箱",
+            "请选择内容检测方式",
+            "发布设置 确认发布 内容是否使用AI功能 请设置",
+            "内容是否使用AI功能 有使用AI 未使用AI",
+            "发布设置 确认发布 内容是否使用AI功能 是",
+            "确定要提交章节？",
+            "章节管理 审核中 第2章 化工厂深处",
+        ]
+    )
+
+    result = await FanqiePublishWorkflow(driver).publish(
+        PublishChapter(number=2, title="化工厂深处", content="正文" * 1000)
+    )
+
+    assert result.status == "审核中"
+    assert (190, 1144) in driver.taps
+    assert (580, 707) in driver.taps
+
+
+@pytest.mark.asyncio
+async def test_publish_allows_direct_submission_without_final_confirmation() -> None:
+    driver = FakeUiDriver(
+        [
+            "发布设置 确认发布 内容是否使用AI功能 是",
+            "章节管理 审核中 第2章 化工厂深处",
+        ]
+    )
+
+    result = await FanqiePublishWorkflow(driver).publish(
+        PublishChapter(number=2, title="化工厂深处", content="正文" * 1000)
+    )
+
+    assert result.status == "审核中"
+    assert (508, 840) not in driver.taps

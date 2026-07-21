@@ -81,3 +81,18 @@ async def test_recovery_closes_publish_settings_before_saving_draft() -> None:
 
     assert driver.taps == [(64, 174)]
     assert driver.descriptions == ["确定", "保存草稿"]
+
+
+@pytest.mark.asyncio
+async def test_recovery_closes_new_work_form_to_safe_creation_page() -> None:
+    driver = FakeRecoveryDriver(
+        [
+            "新建作品 创建 作品名称 作品简介 关闭",
+            "开始创作 开始你的创作之旅 去创作",
+        ]
+    )
+
+    await DeviceRecoveryManager(driver).recover()
+
+    assert driver.taps == [(64, 174)]
+    assert driver.back_presses == 0

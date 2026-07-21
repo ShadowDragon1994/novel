@@ -27,8 +27,11 @@ class DeviceRecoveryManager:
     async def recover(self) -> None:
         for _ in range(self.max_back_steps):
             text = await self.driver.screen_text()
-            if "章节管理" in text:
+            if self._is_safe_baseline(text):
                 return
+            if "新建作品" in text and "关闭" in text:
+                await self.driver.tap((64, 174))
+                continue
             if "发布设置" in text and "关闭" in text:
                 await self.driver.tap((64, 174))
                 continue
@@ -41,6 +44,10 @@ class DeviceRecoveryManager:
             if ("下一步" in text or "AI工具箱" in text) and "已保存到云端" not in text:
                 await self.driver.wait_for_any(("已保存到云端",))
             await self.driver.press_back()
-        if "章节管理" in await self.driver.screen_text():
+        if self._is_safe_baseline(await self.driver.screen_text()):
             return
         raise DeviceRecoveryError("device did not return to chapter management")
+
+    @staticmethod
+    def _is_safe_baseline(text: str) -> bool:
+        return "章节管理" in text or ("开始创作" in text and "去创作" in text)

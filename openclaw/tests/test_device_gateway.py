@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+
 import httpx
 import pytest
 
 from device_gateway.app import create_app
-from device_gateway.fanqie_workflow import PublishResult
+from device_gateway.fanqie_workflow import DeviceQuarantinedError, PublishResult
 
 
 class FakeAdb:
@@ -22,6 +24,27 @@ class FakePublisher:
     async def publish(self, chapter):
         self.requests.append(chapter)
         return PublishResult(chapter_label=f"第{chapter.number}章 {chapter.title}", status="审核中")
+
+
+class SerialPublisher(FakePublisher):
+    def __init__(self) -> None:
+        super().__init__()
+        self.active = 0
+        self.max_active = 0
+
+    async def publish(self, chapter):
+        self.active += 1
+        self.max_active = max(self.max_active, self.active)
+        await asyncio.sleep(0)
+        result = await super().publish(chapter)
+        self.active -= 1
+        return result
+
+
+class QuarantiningPublisher(FakePublisher):
+    async def publish(self, chapter):
+        self.requests.append(chapter)
+        raise DeviceQuarantinedError("device recovery failed")
 
 
 @pytest.mark.asyncio
@@ -115,3 +138,45 @@ async def test_publish_runs_configured_workflow_and_returns_verified_result() ->
     assert response.status_code == 200
     assert response.json() == {"chapter_label": "第2章 化工厂深处", "status": "审核中"}
     assert publisher.requests[0].number == 2
+
+
+@pytest.mark.asyncio
+async def test_publish_serializes_requests_for_one_device() -> None:
+    publisher = SerialPublisher()
+    app = create_app(adb=FakeAdb(), workflow_factory=lambda _device_id: publisher)
+    payload = {
+        "chapter_id": "chapter-2",
+        "account_id": "account-1",
+        "device_id": "cloud-1",
+        "chapter_number": 2,
+        "title": "化工厂深处",
+        "content": "正文" * 1000,
+    }
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://gateway") as client:
+        responses = await asyncio.gather(client.post("/publish", json=payload), client.post("/publish", json=payload))
+
+    assert [response.status_code for response in responses] == [200, 200]
+    assert publisher.max_active == 1
+
+
+@pytest.mark.asyncio
+async def test_publish_quarantines_device_after_failed_recovery() -> None:
+    publisher = QuarantiningPublisher()
+    app = create_app(adb=FakeAdb(), workflow_factory=lambda _device_id: publisher)
+    payload = {
+        "chapter_id": "chapter-2",
+        "account_id": "account-1",
+        "device_id": "cloud-1",
+        "chapter_number": 2,
+        "title": "化工厂深处",
+        "content": "正文" * 1000,
+    }
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://gateway") as client:
+        first = await client.post("/publish", json=payload)
+        second = await client.post("/publish", json=payload)
+
+    assert first.status_code == 503
+    assert second.json()["detail"] == "device is quarantined and requires recovery"
+    assert len(publisher.requests) == 1

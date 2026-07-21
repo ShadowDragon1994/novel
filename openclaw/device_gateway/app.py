@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import os
+from collections import defaultdict
 from typing import Callable, Protocol
 
 from dotenv import load_dotenv
@@ -11,6 +13,7 @@ from core.config import CONFIG_DIR
 from device_gateway.adb import AdbClient, AdbError
 from device_gateway.adb_ui_driver import AdbUiDriver
 from device_gateway.fanqie_workflow import (
+    DeviceQuarantinedError,
     FanqiePublishWorkflow,
     PublishChapter,
     PublishResult,
@@ -46,6 +49,8 @@ def create_app(
 ) -> FastAPI:
     app = FastAPI(title="OpenClaw Device Gateway", version="0.1.0")
     adb_client = adb or AdbClient()
+    device_locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+    quarantined_devices: set[str] = set()
 
     @app.get("/health")
     async def health() -> dict[str, object]:
@@ -71,18 +76,28 @@ def create_app(
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         if state != "device":
             raise HTTPException(status_code=503, detail=f"device is not connected: {state}")
+        if device_id in quarantined_devices:
+            raise HTTPException(status_code=503, detail="device is quarantined and requires recovery")
         if workflow_factory is None:
             raise HTTPException(status_code=503, detail="publishing workflow is not configured")
         if request.chapter_number is None or not request.title or not request.content:
             raise HTTPException(status_code=422, detail="chapter_number, title and content are required")
         try:
-            result = await workflow_factory(device_id).publish(
-                PublishChapter(
-                    number=request.chapter_number,
-                    title=request.title,
-                    content=request.content,
+            async with device_locks[device_id]:
+                if device_id in quarantined_devices:
+                    raise HTTPException(
+                        status_code=503, detail="device is quarantined and requires recovery"
+                    )
+                result = await workflow_factory(device_id).publish(
+                    PublishChapter(
+                        number=request.chapter_number,
+                        title=request.title,
+                        content=request.content,
+                    )
                 )
-            )
+        except DeviceQuarantinedError as exc:
+            quarantined_devices.add(device_id)
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
         except WorkflowError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         return {"chapter_label": result.chapter_label, "status": result.status}

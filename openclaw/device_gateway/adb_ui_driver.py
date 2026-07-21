@@ -116,3 +116,23 @@ class AdbUiDriver:
             await self.tap(((left + right) // 2, (top + bottom) // 2))
             return
         raise WorkflowError(f"UI description was not found: {description}")
+
+    async def press_back(self) -> None:
+        await self.adb.run_device(self.device_id, "shell", "input", "keyevent", "BACK")
+        await self._pause()
+
+    async def scroll_to_top(self) -> None:
+        for _ in range(12):
+            await self.adb.run_device(
+                self.device_id,
+                "shell",
+                "input",
+                "touchscreen",
+                "swipe",
+                "360",
+                "400",
+                "360",
+                "1150",
+                "250",
+            )
+        await self._pause()

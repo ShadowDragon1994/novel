@@ -1,0 +1,33 @@
+from __future__ import annotations
+
+from typing import Protocol
+
+
+class DeviceRecoveryError(RuntimeError):
+    """Raised when a device cannot be returned to a safe baseline page."""
+
+
+class RecoveryDriver(Protocol):
+    async def screen_text(self) -> str: ...
+
+    async def wait_for_any(self, labels: tuple[str, ...]) -> str: ...
+
+    async def press_back(self) -> None: ...
+
+
+class DeviceRecoveryManager:
+    def __init__(self, driver: RecoveryDriver, *, max_back_steps: int = 5) -> None:
+        self.driver = driver
+        self.max_back_steps = max_back_steps
+
+    async def recover(self) -> None:
+        for _ in range(self.max_back_steps):
+            text = await self.driver.screen_text()
+            if "章节管理" in text:
+                return
+            if ("下一步" in text or "AI工具箱" in text) and "已保存到云端" not in text:
+                await self.driver.wait_for_any(("已保存到云端",))
+            await self.driver.press_back()
+        if "章节管理" in await self.driver.screen_text():
+            return
+        raise DeviceRecoveryError("device did not return to chapter management")

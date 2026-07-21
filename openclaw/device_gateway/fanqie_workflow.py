@@ -51,10 +51,9 @@ class FanqiePublishWorkflow:
         if resolved.point is None:
             raise WorkflowError(f"action {state}.{action} has no coordinate")
         await self.driver.tap(resolved.point)
-        text = await self.driver.screen_text()
-        if resolved.verify_any and not any(label in text for label in resolved.verify_any):
-            raise WorkflowError(f"unexpected UI after {state}.{action}: expected {resolved.verify_any!r}")
-        return text
+        if not resolved.verify_any:
+            return await self.driver.screen_text()
+        return await self.driver.wait_for_any(resolved.verify_any)
 
     async def publish(self, chapter: PublishChapter) -> PublishResult:
         if chapter.number < 1 or not chapter.title.strip() or not chapter.content.strip():

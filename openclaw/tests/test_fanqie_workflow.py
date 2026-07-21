@@ -20,6 +20,8 @@ class FakeUiDriver:
         return self.current
 
     async def wait_for_any(self, labels: tuple[str, ...]) -> str:
+        if any(label in self.current for label in labels):
+            return self.current
         self.current = next(self.screens)
         return self.current
 

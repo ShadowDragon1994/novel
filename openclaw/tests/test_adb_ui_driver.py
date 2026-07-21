@@ -14,7 +14,7 @@ class FakeAdb:
 
     async def run_device(self, device_id: str, *args: str) -> str:
         self.commands.append((device_id, *args))
-        if args[:3] == ("shell", "uiautomator", "dump"):
+        if args[:2] == ("shell", "cat"):
             return next(self.outputs)
         return ""
 

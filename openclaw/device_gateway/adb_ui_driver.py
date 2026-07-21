@@ -11,6 +11,7 @@ from device_gateway.fanqie_workflow import WorkflowError
 
 BOUNDS_PATTERN = re.compile(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]")
 ADB_KEYBOARD = "com.github.uiautomator/.AdbKeyboard"
+UI_DUMP_PATH = "/sdcard/openclaw_ui.xml"
 
 
 class DeviceCommands(Protocol):
@@ -39,7 +40,8 @@ class AdbUiDriver:
             await asyncio.sleep(self.pause_seconds)
 
     async def _hierarchy(self) -> ET.Element:
-        output = await self.adb.run_device(self.device_id, "shell", "uiautomator", "dump", "/dev/tty")
+        await self.adb.run_device(self.device_id, "shell", "uiautomator", "dump", UI_DUMP_PATH)
+        output = await self.adb.run_device(self.device_id, "shell", "cat", UI_DUMP_PATH)
         start = output.find("<")
         end = output.rfind("</hierarchy>")
         if start < 0 or end < 0:

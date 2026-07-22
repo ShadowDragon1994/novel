@@ -13,7 +13,12 @@ class FakeFeishu:
         default_novels = [{"fields": {"小说ID": "n1", "关联账号": "acc-1", "自动发布开关": True}}]
         default_accounts = [{
             "record_id": "acc-1",
-            "fields": {"账号ID": "acc-1", "账号状态": "正常/Normal", "红手指设备ID": "cloud-1"},
+            "fields": {
+                "账号ID": "acc-1",
+                "账号状态": "正常/Normal",
+                "红手指设备ID": "cloud-1",
+                "绑定小说ID": "n1",
+            },
         }]
         self.novels = default_novels if novels is None else novels
         self.accounts = default_accounts if accounts is None else accounts
@@ -139,6 +144,7 @@ async def test_scanner_skips_future_chapter() -> None:
 async def test_scanner_skips_already_published() -> None:
     feishu = FakeFeishu(
         chapters=[chapter("c1")],
+        novels=[{"fields": {"小说ID": "n1", "书名": "测试修真小说", "题材": "修真"}}],
         records=[{"fields": {"章节ID": "c1", "发布尝试状态": "成功/Success"}}],
     )
     scanner, _, device = make_scanner(feishu)
@@ -150,9 +156,15 @@ async def test_scanner_skips_already_published() -> None:
 async def test_scanner_calls_device_controller() -> None:
     feishu = FakeFeishu(
         chapters=[chapter("c1")],
+        novels=[{"fields": {"小说ID": "n1", "书名": "测试修真小说", "题材": "修真"}}],
         accounts=[{
             "record_id": "acc-1",
-            "fields": {"账号ID": "acc-1", "账号状态": "正常/Normal", "红手指设备ID": "cloud-1"},
+            "fields": {
+                "账号ID": "acc-1",
+                "账号状态": "正常/Normal",
+                "红手指设备ID": "cloud-1",
+                "绑定小说ID": "n1",
+            },
         }],
         versions=[{
             "fields": {"章节ID": "c1", "版本类型": "校对稿", "是否当前最终版": True, "版本内容": "最终正文"},
@@ -169,6 +181,14 @@ async def test_scanner_calls_device_controller() -> None:
             "chapter_number": 2,
             "title": "化工厂深处",
             "content": "最终正文",
+            "work_name": "测试修真小说",
+            "work_introduction": (
+                "测试修真小说讲述主角在危机中成长并守护同伴，逐步揭开世界秘密的长篇故事。"
+                "故事围绕修真展开，展现人物面对选择时的坚持、勇气与改变。"
+            ),
+            "work_protagonist": "主角",
+            "work_audience": "男频",
+            "work_category": "东方仙侠",
         },
     )]
 

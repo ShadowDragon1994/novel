@@ -39,3 +39,11 @@ def test_create_scheduler_registers_all_jobs() -> None:
         "publish_plan_morning",
         "watchdog",
     }
+
+
+def test_create_scheduler_uses_configured_scan_intervals_and_tracks_publish_resource() -> None:
+    scheduler = create_scheduler(settings={"scan": {"production_interval_seconds": 7, "publish_interval_seconds": 11}})
+
+    assert scheduler.get_job("production_scanner").trigger.interval.total_seconds() == 7
+    assert scheduler.get_job("publish_scanner").trigger.interval.total_seconds() == 11
+    assert len(scheduler.openclaw_resources) >= 2

@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from device_gateway.device_recovery import DeviceRecoveryError, DeviceRecoveryManager
 from device_gateway.ui_coordinates import CoordinateProfile, ResolvedAction, normalize_semantic_text
+
+if TYPE_CHECKING:
+    from device_gateway.fanqie_work_setup import WorkMetadata
 
 
 class WorkflowError(RuntimeError):
@@ -60,6 +63,11 @@ class FanqiePublishWorkflow:
 
     async def recover_device(self) -> None:
         await self.recovery.recover()
+
+    async def ensure_work(self, work: WorkMetadata) -> None:
+        from device_gateway.fanqie_work_setup import FanqieWorkSetupWorkflow
+
+        await FanqieWorkSetupWorkflow(self.driver).ensure(work)
 
     def _action(self, state: str, action: str) -> ResolvedAction:
         return self.profile.resolve(state, action, width=self.driver.width, height=self.driver.height)

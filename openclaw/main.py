@@ -10,6 +10,7 @@ from business.publish_scanner import PublishScanner
 from business.publish_scheduler import PublishScheduler
 from business.review_processor import ReviewProcessor
 from business.watchdog import Watchdog
+from core.config import load_settings
 from core.logger import configure_logging, get_logger
 
 configure_logging()
@@ -37,8 +38,10 @@ def add_job_if_implemented(
     scheduler.add_job(job, *args, **kwargs)
 
 
-def create_scheduler() -> AsyncIOScheduler:
+def create_scheduler(*, settings: dict[str, Any] | None = None) -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler(timezone="Asia/Shanghai")
+    runtime_settings = settings or load_settings().raw
+    scan_settings = runtime_settings.get("scan", {})
 
     production_scanner = ProductionScanner()
     publish_scanner = PublishScanner()
@@ -46,8 +49,24 @@ def create_scheduler() -> AsyncIOScheduler:
     review_processor = ReviewProcessor(production_scanner.feishu_client, production_scanner.guard_layer)
     watchdog = Watchdog(clients={step.value: client for step, client in production_scanner.pipeline.clients.items()})
 
-    add_job_if_implemented(scheduler, production_scanner.run_once, "interval", seconds=300, id="production_scanner")
-    add_job_if_implemented(scheduler, publish_scanner.run_once, "interval", seconds=300, id="publish_scanner")
+    add_job_if_implemented(
+        scheduler,
+        production_scanner.run_once,
+        "interval",
+        seconds=int(scan_settings.get("production_interval_seconds", 300)),
+        id="production_scanner",
+        max_instances=1,
+        coalesce=True,
+    )
+    add_job_if_implemented(
+        scheduler,
+        publish_scanner.run_once,
+        "interval",
+        seconds=int(scan_settings.get("publish_interval_seconds", 300)),
+        id="publish_scanner",
+        max_instances=1,
+        coalesce=True,
+    )
     add_job_if_implemented(scheduler, review_processor.run_once, "interval", seconds=60, id="review_processor")
     add_job_if_implemented(
         scheduler,
@@ -66,7 +85,7 @@ def create_scheduler() -> AsyncIOScheduler:
         id="publish_plan_morning",
     )
     add_job_if_implemented(scheduler, watchdog.run_once, "interval", seconds=60, id="watchdog")
-    scheduler.openclaw_resources = [production_scanner]
+    scheduler.openclaw_resources = [production_scanner, publish_scanner]
     return scheduler
 
 

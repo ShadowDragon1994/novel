@@ -26,6 +26,11 @@ class DeviceController:
         chapter_number: int | None = None,
         title: str | None = None,
         content: str | None = None,
+        work_name: str | None = None,
+        work_introduction: str | None = None,
+        work_protagonist: str | None = None,
+        work_audience: str | None = None,
+        work_category: str | None = None,
     ) -> dict[str, str]:
         if not self.endpoint:
             raise DeviceNotConfiguredError(
@@ -41,6 +46,11 @@ class DeviceController:
                     "chapter_number": chapter_number,
                     "title": title,
                     "content": content,
+                    "work_name": work_name,
+                    "work_introduction": work_introduction,
+                    "work_protagonist": work_protagonist,
+                    "work_audience": work_audience,
+                    "work_category": work_category,
                 }.items()
                 if value is not None
             }

@@ -13,6 +13,7 @@ from core.config import CONFIG_DIR
 from device_gateway.adb import AdbClient, AdbError
 from device_gateway.adb_ui_driver import AdbUiDriver
 from device_gateway.device_recovery import DeviceRecoveryError
+from device_gateway.fanqie_work_setup import WorkMetadata
 from device_gateway.fanqie_workflow import (
     DeviceQuarantinedError,
     FanqiePublishWorkflow,
@@ -29,6 +30,8 @@ class AdbOperations(Protocol):
 
 
 class ChapterPublisher(Protocol):
+    async def ensure_work(self, work: WorkMetadata) -> None: ...
+
     async def publish(self, chapter: PublishChapter) -> PublishResult: ...
 
     async def recover_device(self) -> None: ...
@@ -42,6 +45,11 @@ class PublishRequest(BaseModel):
     chapter_number: int | None = Field(default=None, ge=1)
     title: str | None = None
     content: str | None = None
+    work_name: str | None = None
+    work_introduction: str | None = None
+    work_protagonist: str | None = None
+    work_audience: str = "男频"
+    work_category: str = "都市脑洞"
 
 
 def create_app(
@@ -91,7 +99,23 @@ def create_app(
                     raise HTTPException(
                         status_code=503, detail="device is quarantined and requires recovery"
                     )
-                result = await workflow_factory(device_id).publish(
+                workflow = workflow_factory(device_id)
+                if request.work_name:
+                    if not request.work_introduction or not request.work_protagonist:
+                        raise HTTPException(
+                            status_code=422,
+                            detail="work_introduction and work_protagonist are required with work_name",
+                        )
+                    await workflow.ensure_work(
+                        WorkMetadata(
+                            name=request.work_name,
+                            introduction=request.work_introduction,
+                            protagonist=request.work_protagonist,
+                            audience=request.work_audience,
+                            category=request.work_category,
+                        )
+                    )
+                result = await workflow.publish(
                     PublishChapter(
                         number=request.chapter_number,
                         title=request.title,

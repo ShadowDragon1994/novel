@@ -20,6 +20,10 @@ class FakeAdb:
 class FakePublisher:
     def __init__(self) -> None:
         self.requests = []
+        self.works = []
+
+    async def ensure_work(self, work):
+        self.works.append(work)
 
     async def publish(self, chapter):
         self.requests.append(chapter)
@@ -145,6 +149,35 @@ async def test_publish_runs_configured_workflow_and_returns_verified_result() ->
     assert response.status_code == 200
     assert response.json() == {"chapter_label": "第2章 化工厂深处", "status": "审核中"}
     assert publisher.requests[0].number == 2
+
+
+@pytest.mark.asyncio
+async def test_publish_ensures_first_work_before_publishing_chapter() -> None:
+    publisher = FakePublisher()
+    transport = httpx.ASGITransport(
+        app=create_app(adb=FakeAdb(), workflow_factory=lambda _device_id: publisher)
+    )
+    async with httpx.AsyncClient(transport=transport, base_url="http://gateway") as client:
+        response = await client.post(
+            "/publish",
+            json={
+                "chapter_id": "chapter-1",
+                "account_id": "account-1",
+                "device_id": "cloud-1",
+                "chapter_number": 1,
+                "title": "传承戒指",
+                "content": "正文" * 1000,
+                "work_name": "测试修真小说",
+                "work_introduction": "作品简介" * 20,
+                "work_protagonist": "林玄",
+                "work_audience": "男频",
+                "work_category": "东方仙侠",
+            },
+        )
+
+    assert response.status_code == 200
+    assert publisher.works[0].name == "测试修真小说"
+    assert publisher.requests[0].number == 1
 
 
 @pytest.mark.asyncio

@@ -28,6 +28,10 @@ class PublishScanner:
         self.device = device_controller or DeviceController()
         self.max_attempts = int(load_settings().raw.get("retry", {}).get("publish_max_attempts", 3))
 
+    async def close(self) -> None:
+        await self.device.close()
+        await self.feishu_client.close()
+
     async def run_once(self, *, now: datetime | None = None) -> list[str]:
         ready = await self._ready_chapters(now or datetime.now())
         results = []
@@ -71,6 +75,7 @@ class PublishScanner:
         try:
             device_id = await self._resolve_device_id(account_id)
             content = await self._load_final_content(chapter_id)
+            work = await self._load_work_metadata(str(fields.get("小说ID") or ""))
             if not device_id:
                 raise RuntimeError("missing hongshouzhi device_id")
             if not content:
@@ -83,12 +88,43 @@ class PublishScanner:
                 chapter_number=int(fields.get("章节号") or 0),
                 title=str(fields.get("章节名") or ""),
                 content=content,
+                **work,
             )
             await self._mark_success(record, account_id, result["status"])
             return chapter_id
         except Exception as exc:
             await self._mark_failure(record, exc, account_id=account_id)
             return None
+
+    async def _load_work_metadata(self, novel_id: str) -> dict[str, str]:
+        category_by_genre = {
+            "修真": "东方仙侠",
+            "仙侠": "东方仙侠",
+            "游戏": "玄幻脑洞",
+            "末世": "科幻末世",
+            "种田": "都市种田",
+        }
+        novels = await self.feishu_client.list_records("小说总览表")
+        for record in novels:
+            fields = record.get("fields", record)
+            if str(fields.get("小说ID") or "") != novel_id:
+                continue
+            work_name = str(fields.get("书名") or "").strip()
+            if not work_name:
+                return {}
+            genre = str(fields.get("题材") or "").strip()
+            introduction = (
+                f"{work_name}讲述主角在危机中成长并守护同伴，逐步揭开世界秘密的长篇故事。"
+                f"故事围绕{genre or '成长'}展开，展现人物面对选择时的坚持、勇气与改变。"
+            )
+            return {
+                "work_name": work_name,
+                "work_introduction": introduction,
+                "work_protagonist": "主角",
+                "work_audience": "男频",
+                "work_category": category_by_genre.get(genre, "都市脑洞"),
+            }
+        return {}
 
     async def _novel_auto_publish_enabled(self, novel_id: str) -> bool:
         novels = await self.feishu_client.list_records("小说总览表")

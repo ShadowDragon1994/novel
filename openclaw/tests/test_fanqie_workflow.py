@@ -300,3 +300,20 @@ async def test_publish_allows_direct_submission_without_final_confirmation() -> 
 
     assert result.status == "审核中"
     assert (508, 840) not in driver.taps
+
+
+@pytest.mark.asyncio
+async def test_publish_waits_for_target_after_submission_success_returns_to_draft_tab() -> None:
+    driver = FakeUiDriver(
+        [
+            "提交成功，审核通过后发放 暂无草稿 章节管理 草稿箱",
+            "章节管理 审核中 第1章 传承戒指",
+        ]
+    )
+
+    result = await FanqiePublishWorkflow(driver).publish(
+        PublishChapter(number=1, title="第一章：传承戒指", content="正文" * 1000)
+    )
+
+    assert result.status == "审核中"
+    assert driver.containing_descriptions == ["章节管理"]

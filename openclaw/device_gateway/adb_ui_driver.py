@@ -80,29 +80,37 @@ class AdbUiDriver:
 
     async def replace_text(self, point: tuple[int, int], value: str) -> None:
         await self.tap(point)
+        if value.isdecimal():
+            await self.adb.run_device(
+                self.device_id, "shell", "input", "keyevent", "KEYCODE_MOVE_END"
+            )
+            for _ in range(8):
+                await self.adb.run_device(
+                    self.device_id, "shell", "input", "keyevent", "KEYCODE_DEL"
+                )
+            await self.adb.run_device(
+                self.device_id, "shell", "input", "text", value
+            )
+            await self._pause()
+            return
         try:
             await self.adb.run_device(self.device_id, "shell", "ime", "enable", ADB_KEYBOARD)
             await self.adb.run_device(self.device_id, "shell", "ime", "set", ADB_KEYBOARD)
             await self.adb.run_device(
                 self.device_id, "shell", "am", "broadcast", "-a", "ADB_CLEAR_TEXT"
             )
-            if value.isdecimal():
-                await self.adb.run_device(
-                    self.device_id, "shell", "input", "text", value
-                )
-            else:
-                encoded = base64.b64encode(value.encode()).decode()
-                await self.adb.run_device(
-                    self.device_id,
-                    "shell",
-                    "am",
-                    "broadcast",
-                    "-a",
-                    "ADB_INPUT_B64",
-                    "--es",
-                    "msg",
-                    encoded,
-                )
+            encoded = base64.b64encode(value.encode()).decode()
+            await self.adb.run_device(
+                self.device_id,
+                "shell",
+                "am",
+                "broadcast",
+                "-a",
+                "ADB_INPUT_B64",
+                "--es",
+                "msg",
+                encoded,
+            )
         except AdbError as exc:
             raise WorkflowError(f"failed to enter text through ADB keyboard: {exc}") from exc
         await self._pause()

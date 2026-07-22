@@ -9,7 +9,6 @@ from core.config import load_settings
 from core.feishu_client import FeishuClient
 
 READY_PUBLISH_STATUS = {"待发布", "待发布/Pending Publish", "审核中", "审核中/Under Review"}
-SUCCESS_PUBLISH_STATUS = {"发布成功", "发布成功/Published", "成功/Success"}
 FINAL_PRODUCTION_STATUS = {"已定稿", "已定稿/Finalized", "已审核", "已完成"}
 LOCKED_VALUES = {"是", "是/Yes", True, "人工锁定", "已锁定"}
 AUTO_PUBLISH_ON = {"是", "是/Yes", "开启", "开启/Enabled", True}
@@ -66,8 +65,6 @@ class PublishScanner:
     async def _publish_one(self, record: dict[str, Any]) -> str | None:
         fields = record.get("fields", record)
         chapter_id = str(fields["章节ID"])
-        if await self._already_published(chapter_id):
-            return None
         account_id = await self._resolve_account(str(fields.get("小说ID") or ""))
         if not account_id:
             await self._mark_failure(record, RuntimeError("missing account_id"), account_id="")
@@ -136,14 +133,6 @@ class PublishScanner:
                     return True
                 return switch_val in AUTO_PUBLISH_ON
         return True
-
-    async def _already_published(self, chapter_id: str) -> bool:
-        records = await self.feishu_client.list_records("发布记录表")
-        return any(
-            record.get("fields", record).get("章节ID") == chapter_id
-            and record.get("fields", record).get("发布尝试状态") in SUCCESS_PUBLISH_STATUS
-            for record in records
-        )
 
     async def _resolve_account(self, novel_id: str) -> str:
         novels = await self.feishu_client.list_records("小说总览表")

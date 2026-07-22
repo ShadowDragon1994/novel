@@ -19,6 +19,15 @@ async def test_publish_fails_when_endpoint_is_not_configured() -> None:
 
 
 @pytest.mark.asyncio
+async def test_local_gateway_client_ignores_environment_proxy() -> None:
+    controller = DeviceController(endpoint="http://127.0.0.1:8080")
+    try:
+        assert controller.http_client._trust_env is False
+    finally:
+        await controller.close()
+
+
+@pytest.mark.asyncio
 async def test_publish_sends_extended_gateway_payload() -> None:
     captured: dict[str, object] = {}
 

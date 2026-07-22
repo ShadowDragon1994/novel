@@ -120,3 +120,4 @@ async def test_replace_numeric_text_uses_native_adb_input() -> None:
     assert ("cloud-1", "shell", "input", "text", "1") in adb.commands
     assert ("cloud-1", "shell", "am", "broadcast", "-a", "ADB_CLEAR_TEXT") not in adb.commands
     assert not any(command[2:4] == ("ime", "set") for command in adb.commands)
+    assert not any(command[2:4] == ("input", "keyevent") for command in adb.commands)

@@ -317,3 +317,21 @@ async def test_publish_waits_for_target_after_submission_success_returns_to_draf
 
     assert result.status == "审核中"
     assert driver.containing_descriptions == ["章节管理"]
+
+
+@pytest.mark.asyncio
+async def test_publish_handles_submission_success_during_active_transition() -> None:
+    driver = FakeUiDriver(
+        [
+            "发布设置 确认发布 内容是否使用AI功能 是",
+            "提交成功，审核通过后发放 暂无草稿 章节管理 草稿箱",
+            "章节管理 审核中 第1章 重生归来",
+        ]
+    )
+
+    result = await FanqiePublishWorkflow(driver).publish(
+        PublishChapter(number=1, title="第一章：重生归来", content="正文" * 1000)
+    )
+
+    assert result.status == "审核中"
+    assert driver.containing_descriptions == ["章节管理"]

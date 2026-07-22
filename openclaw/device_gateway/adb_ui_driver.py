@@ -82,13 +82,6 @@ class AdbUiDriver:
         await self.tap(point)
         if value.isdecimal():
             await self.adb.run_device(
-                self.device_id, "shell", "input", "keyevent", "KEYCODE_MOVE_END"
-            )
-            for _ in range(8):
-                await self.adb.run_device(
-                    self.device_id, "shell", "input", "keyevent", "KEYCODE_DEL"
-                )
-            await self.adb.run_device(
                 self.device_id, "shell", "input", "text", value
             )
             await self._pause()

@@ -168,6 +168,10 @@ class FanqiePublishWorkflow:
             status = self._existing_status(text, chapter_label)
             if status:
                 return PublishResult(chapter_label=chapter_label, status=status)
+            if "提交成功" in text and "章节管理" in text:
+                await self.driver.tap_description_contains("章节管理")
+                text = await self.driver.wait_for_any(("审核中", "已发布"))
+                continue
             if "审核中" in text or "已发布" in text:
                 raise WorkflowError(f"submitted chapter was not found: {chapter_label}")
             if "检测到您还有错别字未修改" in text:

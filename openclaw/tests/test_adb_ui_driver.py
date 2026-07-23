@@ -111,13 +111,18 @@ async def test_replace_text_uses_utf8_base64_keyboard_broadcast() -> None:
 
 
 @pytest.mark.asyncio
-async def test_replace_numeric_text_uses_native_adb_input() -> None:
+async def test_replace_numeric_text_clears_existing_value_before_native_adb_input() -> None:
     adb = FakeAdb()
     driver = AdbUiDriver("cloud-1", adb=adb)
 
     await driver.replace_text((145, 325), "1")
 
-    assert ("cloud-1", "shell", "input", "text", "1") in adb.commands
+    move_to_end = ("cloud-1", "shell", "input", "keyevent", "KEYCODE_MOVE_END")
+    delete = ("cloud-1", "shell", "input", "keyevent", "KEYCODE_DEL")
+    enter_value = ("cloud-1", "shell", "input", "text", "1")
+    assert move_to_end in adb.commands
+    assert adb.commands.count(delete) == 12
+    assert enter_value in adb.commands
+    assert adb.commands.index(move_to_end) < adb.commands.index(delete) < adb.commands.index(enter_value)
     assert ("cloud-1", "shell", "am", "broadcast", "-a", "ADB_CLEAR_TEXT") not in adb.commands
     assert not any(command[2:4] == ("ime", "set") for command in adb.commands)
-    assert not any(command[2:4] == ("input", "keyevent") for command in adb.commands)

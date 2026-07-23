@@ -9,7 +9,7 @@ class WenxinClient(ChatCompletionClient):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(
             api_key_env="WENXIN_API_KEY",
-            model="ernie-4.0-turbo-128k",
+            model="ernie-4.5-turbo-128k",
             base_url="https://qianfan.baidubce.com/v2",
             **kwargs,
         )

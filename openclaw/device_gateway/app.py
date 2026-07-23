@@ -3,13 +3,14 @@ from __future__ import annotations
 import asyncio
 import os
 from collections import defaultdict
+from contextlib import asynccontextmanager
 from typing import Callable, Protocol
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from core.config import CONFIG_DIR
+from core.config import CONFIG_DIR, load_settings
 from device_gateway.adb import AdbClient, AdbError
 from device_gateway.adb_ui_driver import AdbUiDriver
 from device_gateway.device_recovery import DeviceRecoveryError
@@ -27,6 +28,8 @@ class AdbOperations(Protocol):
     async def health(self) -> dict[str, str | bool]: ...
 
     async def device_state(self, device_id: str) -> str: ...
+
+    async def connect_device(self, device_id: str) -> str: ...
 
 
 class ChapterPublisher(Protocol):
@@ -56,10 +59,24 @@ def create_app(
     *,
     adb: AdbOperations | None = None,
     default_device_id: str | None = None,
+    configured_device_ids: tuple[str, ...] = (),
     workflow_factory: Callable[[str], ChapterPublisher] | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="OpenClaw Device Gateway", version="0.1.0")
     adb_client = adb or AdbClient()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        results = await asyncio.gather(
+            *(adb_client.connect_device(device_id) for device_id in configured_device_ids),
+            return_exceptions=True,
+        )
+        app.state.adb_connections = {
+            device_id: str(result)
+            for device_id, result in zip(configured_device_ids, results, strict=True)
+        }
+        yield
+
+    app = FastAPI(title="OpenClaw Device Gateway", version="0.1.0", lifespan=lifespan)
     device_locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
     quarantined_devices: set[str] = set()
 
@@ -152,8 +169,14 @@ def create_app(
 
 
 load_dotenv(CONFIG_DIR / ".env")
+configured_devices = tuple(
+    str(item["device_id"])
+    for item in load_settings().raw.get("adb", {}).get("devices", [])
+    if item.get("device_id")
+)
 app = create_app(
     default_device_id=os.getenv("HONGSHOUZHI_DEVICE_ID"),
+    configured_device_ids=configured_devices,
     workflow_factory=lambda device_id: FanqiePublishWorkflow(
         AdbUiDriver(device_id, pause_seconds=1)
     ),

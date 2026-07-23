@@ -1,6 +1,18 @@
 scan:
   production_interval_seconds: 300
   publish_interval_seconds: 300
+adb:
+  devices:
+  - account_id: NOVEL-001
+    device_id: 127.0.0.1:49303
+  - account_id: NOVEL-002
+    device_id: 127.0.0.1:49304
+  - account_id: NOVEL-003
+    device_id: 127.0.0.1:49305
+  - account_id: NOVEL-004
+    device_id: 127.0.0.1:49308
+  - account_id: NOVEL-005
+    device_id: 127.0.0.1:49309
 concurrency:
   per_novel_max: 2
   global_max: 5

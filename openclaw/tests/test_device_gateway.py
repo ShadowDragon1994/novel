@@ -12,6 +12,11 @@ from device_gateway.fanqie_workflow import DeviceQuarantinedError, PublishResult
 class FakeAdb:
     def __init__(self) -> None:
         self.connected_devices: list[str] = []
+        self.lifecycle_events: list[str] = []
+
+    async def start_server(self) -> str:
+        self.lifecycle_events.append("start-server")
+        return "daemon started successfully"
 
     async def health(self) -> dict[str, str | bool]:
         return {"available": True, "version": "Android Debug Bridge version 1.0.41"}
@@ -20,6 +25,7 @@ class FakeAdb:
         return "device" if device_id == "cloud-1" else "offline"
 
     async def connect_device(self, device_id: str) -> str:
+        self.lifecycle_events.append(f"connect:{device_id}")
         self.connected_devices.append(device_id)
         return f"connected to {device_id}"
 
@@ -90,6 +96,7 @@ async def test_gateway_connects_configured_adb_devices_on_startup() -> None:
         pass
 
     assert adb.connected_devices == ["127.0.0.1:49303", "127.0.0.1:49304"]
+    assert adb.lifecycle_events[0] == "start-server"
 
 
 @pytest.mark.asyncio

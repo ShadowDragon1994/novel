@@ -24,6 +24,9 @@ class AdbClient:
         first_line = output.splitlines()[0] if output else "unknown"
         return {"available": True, "version": first_line}
 
+    async def start_server(self) -> str:
+        return await self._run("start-server")
+
     async def device_state(self, device_id: str) -> str:
         if not DEVICE_ID_PATTERN.fullmatch(device_id):
             raise AdbError("invalid device_id")

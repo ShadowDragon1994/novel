@@ -25,6 +25,8 @@ from device_gateway.fanqie_workflow import (
 
 
 class AdbOperations(Protocol):
+    async def start_server(self) -> str: ...
+
     async def health(self) -> dict[str, str | bool]: ...
 
     async def device_state(self, device_id: str) -> str: ...
@@ -66,6 +68,7 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        await adb_client.start_server()
         results = await asyncio.gather(
             *(adb_client.connect_device(device_id) for device_id in configured_device_ids),
             return_exceptions=True,

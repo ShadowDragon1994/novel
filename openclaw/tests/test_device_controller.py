@@ -69,3 +69,17 @@ async def test_publish_sends_extended_gateway_payload() -> None:
         "work_category": "东方仙侠",
     }
     assert result == {"chapter_label": "第1章 第一章", "status": "审核中"}
+
+
+@pytest.mark.asyncio
+async def test_publish_error_includes_gateway_detail() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, json={"detail": "device is not connected: offline"})
+
+    http_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    controller = DeviceController(endpoint="http://gateway", http_client=http_client)
+    try:
+        with pytest.raises(RuntimeError, match="device is not connected: offline"):
+            await controller.publish_chapter("chapter-1", "account-1")
+    finally:
+        await http_client.aclose()

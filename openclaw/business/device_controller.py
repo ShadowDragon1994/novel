@@ -56,7 +56,13 @@ class DeviceController:
             }
         )
         response = await self.http_client.post(f"{self.endpoint}/publish", json=payload)
-        response.raise_for_status()
+        if response.is_error:
+            try:
+                detail = str(response.json().get("detail") or response.text)
+            except (ValueError, AttributeError):
+                detail = response.text
+            detail = detail.strip() or response.reason_phrase
+            raise RuntimeError(f"device gateway returned HTTP {response.status_code}: {detail}")
         result = response.json()
         return {"chapter_label": str(result["chapter_label"]), "status": str(result["status"])}
 

@@ -110,7 +110,13 @@ async def test_publish_rejects_wrong_terminal_chapter() -> None:
 
 @pytest.mark.asyncio
 async def test_publish_reconciles_existing_submitted_chapter_without_creating_duplicate() -> None:
-    driver = FakeUiDriver(["章节管理 审核中 第2章 化工厂深处"])
+    driver = FakeUiDriver(
+        [
+            "章节管理 审核中 第2章 化工厂深处",
+            "章节的内容：审核中 第2章 化工厂深处",
+            "章节管理 审核中 第2章 化工厂深处",
+        ]
+    )
     workflow = FanqiePublishWorkflow(driver)
 
     result = await workflow.publish(PublishChapter(number=2, title="化工厂深处", content="正文" * 1000))
@@ -121,9 +127,32 @@ async def test_publish_reconciles_existing_submitted_chapter_without_creating_du
 
 
 @pytest.mark.asyncio
+async def test_publish_refreshes_under_review_chapter_through_detail_page() -> None:
+    driver = FakeUiDriver(
+        [
+            "章节管理 审核中 第3章 地下实验室",
+            "章节的内容：已发布 第3章 地下实验室 3964字",
+            "章节管理 审核中 第3章 地下实验室",
+        ]
+    )
+
+    result = await FanqiePublishWorkflow(driver).publish(
+        PublishChapter(number=3, title="地下实验室", content="正文" * 1000)
+    )
+
+    assert result.status == "已发布"
+    assert driver.containing_descriptions == ["地下实验室"]
+    assert driver.back_presses == 1
+
+
+@pytest.mark.asyncio
 async def test_publish_uses_status_associated_with_target_chapter() -> None:
     driver = FakeUiDriver(
-        ["章节管理 审核中 第2章 化工厂深处 已发布 第1章 灵气复苏"]
+        [
+            "章节管理 审核中 第2章 化工厂深处 已发布 第1章 灵气复苏",
+            "章节的内容：审核中 第2章 化工厂深处",
+            "章节管理 审核中 第2章 化工厂深处 已发布 第1章 灵气复苏",
+        ]
     )
 
     result = await FanqiePublishWorkflow(driver).publish(
@@ -135,7 +164,13 @@ async def test_publish_uses_status_associated_with_target_chapter() -> None:
 
 @pytest.mark.asyncio
 async def test_publish_strips_redundant_chapter_prefix_from_platform_title() -> None:
-    driver = FakeUiDriver(["章节管理 审核中 第2章 化工厂深处"])
+    driver = FakeUiDriver(
+        [
+            "章节管理 审核中 第2章 化工厂深处",
+            "章节的内容：审核中 第2章 化工厂深处",
+            "章节管理 审核中 第2章 化工厂深处",
+        ]
+    )
 
     result = await FanqiePublishWorkflow(driver).publish(
         PublishChapter(number=2, title="第二章：化工厂深处", content="正文" * 1000)
@@ -308,6 +343,8 @@ async def test_publish_waits_for_target_after_submission_success_returns_to_draf
         [
             "提交成功，审核通过后发放 暂无草稿 章节管理 草稿箱",
             "章节管理 审核中 第1章 传承戒指",
+            "章节的内容：审核中 第1章 传承戒指",
+            "章节管理 审核中 第1章 传承戒指",
         ]
     )
 
@@ -316,7 +353,7 @@ async def test_publish_waits_for_target_after_submission_success_returns_to_draf
     )
 
     assert result.status == "审核中"
-    assert driver.containing_descriptions == ["章节管理"]
+    assert driver.containing_descriptions == ["章节管理", "传承戒指"]
 
 
 @pytest.mark.asyncio

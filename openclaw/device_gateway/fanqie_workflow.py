@@ -92,6 +92,12 @@ class FanqiePublishWorkflow:
             initial_text = await self.driver.wait_for_any(("审核中", "已发布"))
         existing_status = self._existing_status(initial_text, chapter_label)
         if "章节管理" in initial_text and existing_status:
+            if existing_status == "审核中":
+                await self.driver.tap_description_contains(platform_title)
+                detail_text = await self.driver.screen_text()
+                await self.driver.press_back()
+                if "章节的内容：已发布" in detail_text:
+                    existing_status = "已发布"
             return PublishResult(chapter_label=chapter_label, status=existing_status)
         if "章节管理" in initial_text and "草稿箱" in initial_text:
             draft_text = initial_text

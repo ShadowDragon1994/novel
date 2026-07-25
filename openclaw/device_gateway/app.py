@@ -35,6 +35,8 @@ class AdbOperations(Protocol):
 
 
 class ChapterPublisher(Protocol):
+    async def prepare_for_task(self) -> None: ...
+
     async def ensure_work(self, work: WorkMetadata) -> None: ...
 
     async def publish(self, chapter: PublishChapter) -> PublishResult: ...
@@ -120,6 +122,7 @@ def create_app(
                         status_code=503, detail="device is quarantined and requires recovery"
                     )
                 workflow = workflow_factory(device_id)
+                await workflow.prepare_for_task()
                 if request.work_name:
                     if not request.work_introduction or not request.work_protagonist:
                         raise HTTPException(

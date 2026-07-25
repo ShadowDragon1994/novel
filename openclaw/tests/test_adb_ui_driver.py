@@ -33,6 +33,35 @@ async def test_screen_text_extracts_text_and_descriptions() -> None:
 
 
 @pytest.mark.asyncio
+async def test_cold_start_app_resets_android_task_before_launch() -> None:
+    adb = FakeAdb()
+    driver = AdbUiDriver("cloud-1", adb=adb)
+
+    await driver.cold_start_app()
+
+    assert adb.commands == [
+        ("cloud-1", "shell", "input", "keyevent", "KEYCODE_HOME"),
+        (
+            "cloud-1",
+            "shell",
+            "am",
+            "force-stop",
+            "com.bytedance.writer_assistant_flutter",
+        ),
+        (
+            "cloud-1",
+            "shell",
+            "monkey",
+            "-p",
+            "com.bytedance.writer_assistant_flutter",
+            "-c",
+            "android.intent.category.LAUNCHER",
+            "1",
+        ),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_tap_description_uses_accessibility_bounds_center() -> None:
     adb = FakeAdb(
         ['<hierarchy><node text="" content-desc="有使用AI" bounds="[72,900][648,1016]" /></hierarchy>']

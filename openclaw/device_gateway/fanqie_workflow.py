@@ -38,6 +38,8 @@ class UiDriver(Protocol):
 
     async def screen_text(self) -> str: ...
 
+    async def cold_start_app(self) -> None: ...
+
     async def wait_for_any(self, labels: tuple[str, ...]) -> str: ...
 
     async def tap(self, point: tuple[int, int]) -> None: ...
@@ -63,6 +65,25 @@ class FanqiePublishWorkflow:
 
     async def recover_device(self) -> None:
         await self.recovery.recover()
+
+    async def prepare_for_task(self) -> None:
+        await self.driver.cold_start_app()
+        text = await self.driver.screen_text()
+        for _ in range(4):
+            if DeviceRecoveryManager._is_safe_baseline(text):
+                return
+            if "作品" in text and "我的" in text:
+                text = await self._tap("home_page", "open_works")
+                if DeviceRecoveryManager._is_safe_baseline(text):
+                    return
+                text = await self._tap("works_page", "open_first_work")
+                if DeviceRecoveryManager._is_safe_baseline(text):
+                    return
+            await self.driver.press_back()
+            text = await self.driver.wait_for_any(
+                ("章节管理", "开始创作", "作品", "我的")
+            )
+        raise WorkflowError(f"cold start did not reach Fanqie works page: {text[:200]!r}")
 
     async def ensure_work(self, work: WorkMetadata) -> None:
         from device_gateway.fanqie_work_setup import FanqieWorkSetupWorkflow

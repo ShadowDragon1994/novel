@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from device_gateway.ui_coordinates import normalize_semantic_text
+
 
 class DeviceRecoveryError(RuntimeError):
     """Raised when a device cannot be returned to a safe baseline page."""
@@ -50,4 +52,5 @@ class DeviceRecoveryManager:
 
     @staticmethod
     def _is_safe_baseline(text: str) -> bool:
-        return "章节管理" in text or ("开始创作" in text and "去创作" in text)
+        normalized = normalize_semantic_text(text)
+        return "章节管理" in normalized or ("开始创作" in normalized and "去创作" in normalized)

@@ -14,6 +14,13 @@ states:
           - 作品
   works_page:
     actions:
+      open_first_work:
+        x: 268
+        y: 650
+        next_state: chapter_list
+        verify_any:
+          - 章节管理
+          - 开始创作
       start_creation:
         x: 344
         y: 993

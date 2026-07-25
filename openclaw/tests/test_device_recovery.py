@@ -42,6 +42,15 @@ async def test_recovery_returns_saved_editor_to_chapter_management() -> None:
 
 
 @pytest.mark.asyncio
+async def test_recovery_accepts_zero_width_characters_in_chapter_management() -> None:
+    driver = FakeRecoveryDriver(["章\u200b节\u200b管\u200b理 草稿箱"])
+
+    await DeviceRecoveryManager(driver).recover()
+
+    assert driver.back_presses == 0
+
+
+@pytest.mark.asyncio
 async def test_recovery_quarantines_device_when_baseline_cannot_be_reached() -> None:
     driver = FakeRecoveryDriver(["未知页面", "未知页面", "未知页面"])
 

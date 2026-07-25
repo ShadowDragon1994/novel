@@ -13,6 +13,7 @@ from device_gateway.ui_coordinates import normalize_semantic_text
 BOUNDS_PATTERN = re.compile(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]")
 ADB_KEYBOARD = "com.android.adbkeyboard/.AdbIME"
 UI_DUMP_PATH = "/sdcard/openclaw_ui.xml"
+FANQIE_PACKAGE = "com.bytedance.writer_assistant_flutter"
 
 
 class DeviceCommands(Protocol):
@@ -39,6 +40,25 @@ class AdbUiDriver:
     async def _pause(self) -> None:
         if self.pause_seconds:
             await asyncio.sleep(self.pause_seconds)
+
+    async def cold_start_app(self) -> None:
+        await self.adb.run_device(
+            self.device_id, "shell", "input", "keyevent", "KEYCODE_HOME"
+        )
+        await self.adb.run_device(
+            self.device_id, "shell", "am", "force-stop", FANQIE_PACKAGE
+        )
+        await self.adb.run_device(
+            self.device_id,
+            "shell",
+            "monkey",
+            "-p",
+            FANQIE_PACKAGE,
+            "-c",
+            "android.intent.category.LAUNCHER",
+            "1",
+        )
+        await self._pause()
 
     async def _hierarchy(self) -> ET.Element:
         await self.adb.run_device(self.device_id, "shell", "uiautomator", "dump", UI_DUMP_PATH)

@@ -34,6 +34,10 @@ class FakePublisher:
     def __init__(self) -> None:
         self.requests = []
         self.works = []
+        self.prepared = 0
+
+    async def prepare_for_task(self):
+        self.prepared += 1
 
     async def ensure_work(self, work):
         self.works.append(work)
@@ -82,6 +86,29 @@ async def test_health_reports_adb_availability() -> None:
         "status": "ok",
         "adb": {"available": True, "version": "Android Debug Bridge version 1.0.41"},
     }
+
+
+@pytest.mark.asyncio
+async def test_publish_prepares_device_before_workflow() -> None:
+    publisher = FakePublisher()
+    transport = httpx.ASGITransport(
+        app=create_app(adb=FakeAdb(), workflow_factory=lambda _device_id: publisher)
+    )
+    async with httpx.AsyncClient(transport=transport, base_url="http://gateway") as client:
+        response = await client.post(
+            "/publish",
+            json={
+                "device_id": "cloud-1",
+                "chapter_id": "c1",
+                "account_id": "a1",
+                "chapter_number": 1,
+                "title": "第一章",
+                "content": "正文",
+            },
+        )
+
+    assert response.status_code == 200
+    assert publisher.prepared == 1
 
 
 @pytest.mark.asyncio

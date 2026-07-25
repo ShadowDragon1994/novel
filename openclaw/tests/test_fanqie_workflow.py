@@ -19,6 +19,10 @@ class FakeUiDriver:
         self.right_containing_descriptions: list[str] = []
         self.back_presses = 0
         self.scrolled_to_top = 0
+        self.cold_starts = 0
+
+    async def cold_start_app(self) -> None:
+        self.cold_starts += 1
 
     async def screen_text(self) -> str:
         return self.current
@@ -54,6 +58,24 @@ class FakeUiDriver:
 
     async def scroll_to_top(self) -> None:
         self.scrolled_to_top += 1
+
+
+@pytest.mark.asyncio
+async def test_prepare_for_task_cold_starts_and_opens_works_page() -> None:
+    driver = FakeUiDriver(
+        [
+            "每周任务 更多任务",
+            "消息 作品 活动 数据 我的",
+            "测试小说 作品 我的",
+            "章节管理 草稿箱",
+        ]
+    )
+
+    await FanqiePublishWorkflow(driver).prepare_for_task()
+
+    assert driver.cold_starts == 1
+    assert driver.back_presses == 1
+    assert driver.taps == [(228, 1224), (268, 650)]
 
 
 @pytest.mark.asyncio

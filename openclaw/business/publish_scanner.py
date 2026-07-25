@@ -82,7 +82,9 @@ class PublishScanner:
         try:
             device_id = await self._resolve_device_id(account_id)
             content = await self._load_final_content(chapter_id)
-            work = await self._load_work_metadata(str(fields.get("小说ID") or ""))
+            work = {}
+            if fields.get("发布状态") not in UNDER_REVIEW_STATUS:
+                work = await self._load_work_metadata(str(fields.get("小说ID") or ""))
             if not device_id:
                 raise RuntimeError("missing hongshouzhi device_id")
             if not content:

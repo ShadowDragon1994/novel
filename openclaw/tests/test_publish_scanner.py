@@ -232,6 +232,18 @@ async def test_scanner_reconciles_under_review_chapter_until_published() -> None
 
 
 @pytest.mark.asyncio
+async def test_scanner_reconciliation_does_not_trigger_work_setup() -> None:
+    feishu = FakeFeishu(
+        chapters=[chapter("c1", status="审核中/Under Review")],
+        novels=[{"fields": {"小说ID": "n1", "书名": "测试修真小说", "题材": "修真"}}],
+    )
+    scanner, _, device = make_scanner(feishu, FakeDevice(status="已发布"))
+
+    assert await scanner.run_once() == ["c1"]
+    assert "work_name" not in device.calls[0][2]
+
+
+@pytest.mark.asyncio
 async def test_scanner_reconciles_under_review_chapter_during_account_warmup() -> None:
     feishu = FakeFeishu(
         chapters=[chapter("c1", status="审核中/Under Review")],

@@ -8,7 +8,7 @@ from core.feishu_client import FeishuClient
 
 APPROVED = {"通过", "通过/Approved", "已通过"}
 REJECTED = {"不通过", "不通过/Rejected", "驳回"}
-FINALIZED = {"已定稿", "已定稿/Finalized"}
+FINALIZED = {"已定稿", "已定稿/Finalized", "已审核", "已完成"}
 
 
 class ReviewProcessor:
@@ -30,7 +30,7 @@ class ReviewProcessor:
                     "生产状态": "已定稿/Finalized",
                     "内容锁定状态": "是/Yes",
                     "发布状态": "未排期/Unscheduled",
-                    "审核时间": reviewed_at.isoformat(),
+                    "审核时间": int(reviewed_at.timestamp() * 1000),
                 }
             elif result in REJECTED and fields.get("生产状态") != "待生成初稿/Pending Draft":
                 update = {
@@ -38,7 +38,7 @@ class ReviewProcessor:
                     "内容锁定状态": "否/No",
                     "发布状态": "未排期/Unscheduled",
                     "内容返工次数": int(fields.get("内容返工次数") or 0) + 1,
-                    "审核时间": reviewed_at.isoformat(),
+                    "审核时间": int(reviewed_at.timestamp() * 1000),
                 }
             if update:
                 await self.guard_layer.write(

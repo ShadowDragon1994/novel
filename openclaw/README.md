@@ -18,6 +18,10 @@ entrypoint starts the device gateway, connects every ADB device in
 configured scanners scheduled. Stop it with `Ctrl+C`; the scheduler, HTTP clients,
 and gateway are closed before exit.
 
+On Windows, `scripts/run_closed_loop.ps1` is the background-service launcher used
+by the `OpenClaw Novel Closed Loop` logon task. Its combined service log is written
+to `logs/closed_loop.service.log`.
+
 ## Tests
 
 ```powershell

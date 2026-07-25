@@ -232,6 +232,31 @@ async def test_scanner_reconciles_under_review_chapter_until_published() -> None
 
 
 @pytest.mark.asyncio
+async def test_scanner_reconciles_under_review_chapter_during_account_warmup() -> None:
+    feishu = FakeFeishu(
+        chapters=[chapter("c1", status="审核中/Under Review")],
+        accounts=[
+            {
+                "record_id": "acc-1",
+                "fields": {
+                    "账号ID": "acc-1",
+                    "账号状态": "正常/Normal",
+                    "账号健康状态": "正常/Normal",
+                    "账号阶段": "养号期",
+                    "红手指设备ID": "cloud-1",
+                    "绑定小说ID": "n1",
+                },
+            }
+        ],
+    )
+    scanner, guard, device = make_scanner(feishu, FakeDevice(status="已发布"))
+
+    assert await scanner.run_once() == ["c1"]
+    assert len(device.calls) == 1
+    assert guard.writes[0][2]["发布状态"] == "发布成功/Published"
+
+
+@pytest.mark.asyncio
 async def test_scanner_does_not_duplicate_submitted_record_during_reconciliation() -> None:
     feishu = FakeFeishu(
         chapters=[chapter("c1", status="审核中/Under Review")],

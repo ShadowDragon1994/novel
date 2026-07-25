@@ -9,6 +9,7 @@ from core.config import load_settings
 from core.feishu_client import FeishuClient
 
 READY_PUBLISH_STATUS = {"待发布", "待发布/Pending Publish", "审核中", "审核中/Under Review"}
+UNDER_REVIEW_STATUS = {"审核中", "审核中/Under Review"}
 FINAL_PRODUCTION_STATUS = {"已定稿", "已定稿/Finalized", "已审核", "已完成"}
 LOCKED_VALUES = {"是", "是/Yes", True, "人工锁定", "已锁定"}
 AUTO_PUBLISH_ON = {"是", "是/Yes", "开启", "开启/Enabled", True}
@@ -53,12 +54,21 @@ class PublishScanner:
                 continue
             if not fields.get("当前版本"):
                 continue
+            account_id = await self._resolve_account(novel_id)
+            publish_status = fields.get("发布状态")
+            if publish_status not in READY_PUBLISH_STATUS:
+                continue
+
+            if publish_status in UNDER_REVIEW_STATUS:
+                if account_id and await self._account_can_reconcile(account_id):
+                    ready.append(record)
+                continue
+
             if not await self._novel_auto_publish_enabled(novel_id):
                 continue
-            account_id = await self._resolve_account(novel_id)
             if not account_id or not await self._account_is_healthy(account_id):
                 continue
-            if fields.get("发布状态") in READY_PUBLISH_STATUS and planned_at and planned_at <= now:
+            if planned_at and planned_at <= now:
                 ready.append(record)
         return sorted(ready, key=lambda record: str(record.get("fields", record).get("计划发布时间") or ""))
 
@@ -178,6 +188,19 @@ class PublishScanner:
                 enabled = fields.get("自动发布开关", True) in AUTO_PUBLISH_ON
                 stage = str(fields.get("账号阶段") or "稳定期")
                 return healthy and enabled and stage not in {"养号期", "养号期/Warmup"}
+        return False
+
+    async def _account_can_reconcile(self, account_id: str) -> bool:
+        """Allow submitted chapters to refresh status even during account warmup."""
+        accounts = await self.feishu_client.list_records("账号管理表")
+        for record in accounts:
+            fields = record.get("fields", record)
+            current_id = str(fields.get("账号ID") or fields.get("ID") or record.get("record_id") or "")
+            if current_id != account_id:
+                continue
+            healthy = str(fields.get("账号健康状态") or fields.get("账号状态") or "") in HEALTHY_ACCOUNT_STATUS
+            device_id = str(fields.get("红手指设备ID") or "").strip()
+            return healthy and bool(device_id)
         return False
 
     async def _resolve_device_id(self, account_id: str) -> str:

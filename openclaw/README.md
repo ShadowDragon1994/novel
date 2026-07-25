@@ -9,8 +9,14 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 copy config\.env.example config\.env
-python main.py
+python closed_loop.py --once
 ```
+
+Use `python closed_loop.py --continuous` for unattended operation. The closed-loop
+entrypoint starts the device gateway, connects every ADB device in
+`config/config.yaml`, runs an immediate production/publish cycle, and then keeps the
+configured scanners scheduled. Stop it with `Ctrl+C`; the scheduler, HTTP clients,
+and gateway are closed before exit.
 
 ## Tests
 

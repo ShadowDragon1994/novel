@@ -4,9 +4,9 @@ scan:
 adb:
   devices:
   - account_id: NOVEL-001
-    device_id: 127.0.0.1:52525
-  - account_id: NOVEL-002
     device_id: 127.0.0.1:52526
+  - account_id: NOVEL-002
+    device_id: 127.0.0.1:52525
   - account_id: NOVEL-003
     device_id: 127.0.0.1:52527
   - account_id: NOVEL-004

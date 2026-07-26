@@ -66,7 +66,7 @@ async def test_prepare_for_task_cold_starts_and_opens_works_page() -> None:
         [
             "每周任务 更多任务",
             "消息 作品 活动 数据 我的",
-            "测试小说 作品 我的",
+            "测试小说 连载中 作品 我的",
             "章节管理 草稿箱",
         ]
     )
@@ -75,6 +75,21 @@ async def test_prepare_for_task_cold_starts_and_opens_works_page() -> None:
 
     assert driver.cold_starts == 1
     assert driver.back_presses == 1
+    assert driver.taps == [(228, 1224), (268, 650)]
+
+
+@pytest.mark.asyncio
+async def test_prepare_for_task_does_not_treat_message_copy_as_creation_page() -> None:
+    driver = FakeUiDriver(
+        [
+            "消息中心 作品 我的 开始创作 去创作",
+            "测试小说 连载中 作品 我的",
+            "章节管理 草稿箱",
+        ]
+    )
+
+    await FanqiePublishWorkflow(driver).prepare_for_task()
+
     assert driver.taps == [(228, 1224), (268, 650)]
 
 

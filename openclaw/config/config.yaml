@@ -4,15 +4,15 @@ scan:
 adb:
   devices:
   - account_id: NOVEL-001
-    device_id: 127.0.0.1:52526
+    device_id: 127.0.0.1:59890
   - account_id: NOVEL-002
-    device_id: 127.0.0.1:52525
+    device_id: 127.0.0.1:59889
   - account_id: NOVEL-003
-    device_id: 127.0.0.1:52527
+    device_id: 127.0.0.1:59894
   - account_id: NOVEL-004
-    device_id: 127.0.0.1:52528
+    device_id: 127.0.0.1:59893
   - account_id: NOVEL-005
-    device_id: 127.0.0.1:52529
+    device_id: 127.0.0.1:59897
 concurrency:
   per_novel_max: 2
   global_max: 5

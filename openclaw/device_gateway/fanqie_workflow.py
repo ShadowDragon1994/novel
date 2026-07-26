@@ -70,10 +70,11 @@ class FanqiePublishWorkflow:
         await self.driver.cold_start_app()
         text = await self.driver.screen_text()
         for _ in range(4):
-            if DeviceRecoveryManager._is_safe_baseline(text):
+            normalized = normalize_semantic_text(text)
+            if "章节管理" in normalized:
                 return
-            if "作品" in text and "我的" in text:
-                text = await self._tap("home_page", "open_works")
+            if "作品" in normalized and "我的" in normalized:
+                text = await self._open_works_page()
                 if DeviceRecoveryManager._is_safe_baseline(text):
                     return
                 text = await self._tap("works_page", "open_first_work")
@@ -84,6 +85,19 @@ class FanqiePublishWorkflow:
                 ("章节管理", "开始创作", "作品", "我的")
             )
         raise WorkflowError(f"cold start did not reach Fanqie works page: {text[:200]!r}")
+
+    async def _open_works_page(self) -> str:
+        action = self._action("home_page", "open_works")
+        if action.point is None:
+            raise WorkflowError("action home_page.open_works has no coordinate")
+        latest = ""
+        for _ in range(3):
+            await self.driver.tap(action.point)
+            latest = await self.driver.screen_text()
+            normalized = normalize_semantic_text(latest)
+            if "连载中" in normalized or "去创作" in normalized:
+                return latest
+        raise WorkflowError(f"works tab did not open after 3 attempts: {latest[:200]!r}")
 
     async def ensure_work(self, work: WorkMetadata) -> None:
         from device_gateway.fanqie_work_setup import FanqieWorkSetupWorkflow

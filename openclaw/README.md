@@ -54,3 +54,6 @@ page and reference resolution; `CoordinateProfile.resolve()` scales it for the c
 - `llm/`: 模型适配层，所有模型通过 `LLMClient` 接口调用。
 - `config/`: 运行配置、字段映射和本地密钥。
 - `tests/`: 优先覆盖 GuardLayer、TaskLock、CircuitBreaker、RateLimiter。
+
+完整的部署、运行、设备换端口、日志分析和故障处理说明见
+[`docs/运维操作手册.md`](docs/运维操作手册.md)。

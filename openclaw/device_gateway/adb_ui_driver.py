@@ -30,11 +30,13 @@ class AdbUiDriver:
         *,
         adb: DeviceCommands | None = None,
         pause_seconds: float = 0,
+        startup_wait_seconds: float = 3,
         wait_timeout_seconds: float = 20,
     ) -> None:
         self.device_id = device_id
         self.adb = adb or AdbClient()
         self.pause_seconds = pause_seconds
+        self.startup_wait_seconds = startup_wait_seconds
         self.wait_timeout_seconds = wait_timeout_seconds
 
     async def _pause(self) -> None:
@@ -58,7 +60,8 @@ class AdbUiDriver:
             "android.intent.category.LAUNCHER",
             "1",
         )
-        await self._pause()
+        if self.startup_wait_seconds:
+            await asyncio.sleep(self.startup_wait_seconds)
 
     async def _hierarchy(self) -> ET.Element:
         await self.adb.run_device(self.device_id, "shell", "uiautomator", "dump", UI_DUMP_PATH)

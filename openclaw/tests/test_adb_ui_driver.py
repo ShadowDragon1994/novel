@@ -27,7 +27,7 @@ async def test_screen_text_extracts_text_and_descriptions() -> None:
             'bounds="[0,0][100,100]" /></hierarchy>'
         ]
     )
-    driver = AdbUiDriver("cloud-1", adb=adb)
+    driver = AdbUiDriver("cloud-1", adb=adb, startup_wait_seconds=0)
 
     assert await driver.screen_text() == "第2章\n审核中"
 
@@ -35,7 +35,7 @@ async def test_screen_text_extracts_text_and_descriptions() -> None:
 @pytest.mark.asyncio
 async def test_cold_start_app_resets_android_task_before_launch() -> None:
     adb = FakeAdb()
-    driver = AdbUiDriver("cloud-1", adb=adb)
+    driver = AdbUiDriver("cloud-1", adb=adb, startup_wait_seconds=0)
 
     await driver.cold_start_app()
 

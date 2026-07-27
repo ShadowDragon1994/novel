@@ -84,7 +84,15 @@ def create_scheduler(*, settings: dict[str, Any] | None = None) -> AsyncIOSchedu
         minute=10,
         id="publish_plan_morning",
     )
-    add_job_if_implemented(scheduler, watchdog.run_once, "interval", seconds=60, id="watchdog")
+    add_job_if_implemented(
+        scheduler,
+        watchdog.run_once,
+        "interval",
+        seconds=int(scan_settings.get("watchdog_interval_seconds", 300)),
+        id="watchdog",
+        max_instances=1,
+        coalesce=True,
+    )
     scheduler.openclaw_resources = [production_scanner, publish_scanner]
     return scheduler
 

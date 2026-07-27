@@ -36,7 +36,11 @@ class FanqieWorkSetupWorkflow:
     async def ensure(self, work: WorkMetadata) -> None:
         self._validate(work)
         text = await self.driver.screen_text()
-        if "章节管理" in text and work.name in text:
+        # Each configured cloud device is bound to exactly one account/work.  Once
+        # Fanqie is already on that work's chapter-management page, creating or
+        # searching for a title is both unnecessary and dangerous (the Feishu
+        # display title can lag behind a title changed in Fanqie).
+        if "章节管理" in text:
             return
         if "下一步" in text and "关闭" in text:
             await self.driver.press_back()

@@ -265,10 +265,16 @@ class PublishScanner:
                     "关联正文版本": fields.get("当前版本", ""),
                 },
             )
+        chapter_update: dict[str, Any] = {
+            "发布状态": "发布成功/Published" if platform_status == "已发布" else "审核中/Under Review",
+            "错误信息": "",
+        }
+        if platform_status == "已发布":
+            chapter_update["实际发布时间"] = int(datetime.now().timestamp() * 1000)
         await self.guard_layer.write(
             "章节任务表",
             str(record.get("record_id") or chapter_id),
-            {"发布状态": "发布成功/Published" if platform_status == "已发布" else "审核中/Under Review"},
+            chapter_update,
         )
         if platform_status == "已发布" and not already_recorded:
             await self._update_account_after_success(account_id)

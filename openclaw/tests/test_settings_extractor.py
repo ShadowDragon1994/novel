@@ -189,7 +189,7 @@ async def test_extract_empty_result_only_writes_log() -> None:
     extractor = SettingsExtractor(feishu, FakeGuard(), FakeLLM(payload()))
     result = await extractor.extract_after_final("c1")
     assert result.created == 0
-    assert feishu.created[0][0] == "运行日志表"
+    assert any(table == "运行日志表" for table, _ in feishu.created)
 
 
 def test_extract_parses_json_embedded_in_text() -> None:
@@ -240,6 +240,26 @@ async def test_extract_writes_short_term_memory_after_final() -> None:
     memory = next(fields for table, fields in feishu.created if table == "短期记忆表")
     assert memory["关联章节ID"] == "c1"
     assert memory["摘要"] == "终稿内容"
+
+
+@pytest.mark.asyncio
+async def test_extract_does_not_write_success_log_before_memory_persists() -> None:
+    class FailingMemoryFeishu(FakeFeishu):
+        async def create_record(self, table_name, fields):
+            if table_name == "短期记忆表":
+                raise RuntimeError("memory write failed")
+            return await super().create_record(table_name, fields)
+
+    feishu = FailingMemoryFeishu()
+    extractor = SettingsExtractor(feishu, FakeGuard(), FakeLLM(payload()))
+
+    with pytest.raises(RuntimeError, match="memory write failed"):
+        await extractor.extract_after_final("c1")
+
+    assert not any(
+        table == "运行日志表" and fields.get("执行状态") == "成功/Success"
+        for table, fields in feishu.created
+    )
 
 
 @pytest.mark.asyncio

@@ -129,6 +129,9 @@ class SettingsExtractor:
                     await self._create_pending(spec, {**item, self._core_field_for_spec(spec): True}, index)
                     result.created += 1
         await self._mark_resolved_foreshadows(entities.get("foreshadows_resolved", []))
+        await self._create_long_term_candidates(entities.get("long_term_memory", []))
+        await self._write_short_term_memory(chapter_id, proofread, chapter_card, entities)
+        await self._maybe_write_mid_term_memory(str(chapter_card.get("小说ID") or ""))
         await self.feishu_client.create_record(
             "运行日志表",
             {
@@ -141,9 +144,6 @@ class SettingsExtractor:
                 "重试次数": 0,
             },
         )
-        await self._create_long_term_candidates(entities.get("long_term_memory", []))
-        await self._write_short_term_memory(chapter_id, proofread, chapter_card, entities)
-        await self._maybe_write_mid_term_memory(str(chapter_card.get("小说ID") or ""))
         return result
 
     async def _load_proofread(self, chapter_id: str) -> str:

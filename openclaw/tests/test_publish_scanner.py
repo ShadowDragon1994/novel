@@ -218,6 +218,7 @@ async def test_scanner_marks_success_on_device_ok() -> None:
     assert feishu.created[0][0] == "发布记录表"
     assert feishu.created[0][1]["发布尝试状态"] == "已提交/Submitted"
     assert guard.writes[0][2]["发布状态"] == "审核中/Under Review"
+    assert guard.writes[0][2]["错误信息"] == ""
 
 
 @pytest.mark.asyncio
@@ -229,6 +230,7 @@ async def test_scanner_reconciles_under_review_chapter_until_published() -> None
 
     assert feishu.created[0][1]["发布尝试状态"] == "成功/Success"
     assert guard.writes[0][2]["发布状态"] == "发布成功/Published"
+    assert isinstance(guard.writes[0][2]["实际发布时间"], int)
 
 
 @pytest.mark.asyncio

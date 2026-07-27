@@ -306,6 +306,10 @@
       field_id: fldZfsQGVF
       field_name_en: planned_publish_time
       type: datetime
+    实际发布时间:
+      field_id: flde4X11ma
+      field_name_en: actual_publish_time
+      type: datetime
     章节卡内容:
       field_id: fldYrdusRI
       field_name_en: chapter_card_content
@@ -639,6 +643,10 @@
     版本ID:
       field_id: fldN98yYji
       field_name_en: version_id
+      type: text
+    小说ID:
+      field_id: fldNB5HMIO
+      field_name_en: novel_id
       type: text
     关联章节ID:
       field_id: fldPMKixke

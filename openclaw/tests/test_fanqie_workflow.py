@@ -61,6 +61,22 @@ class FakeUiDriver:
 
 
 @pytest.mark.asyncio
+async def test_open_editor_retries_a_missed_feather_button_tap() -> None:
+    driver = FakeUiDriver(["章节管理 草稿箱"])
+    workflow = FanqiePublishWorkflow(driver)
+    attempts = iter([WorkflowError("missed tap"), "下一步 请输入正文"])
+
+    async def fake_tap(state: str, action: str) -> str:
+        result = next(attempts)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    workflow._tap = fake_tap  # type: ignore[method-assign]
+    assert await workflow._open_editor_from_chapter_list() == "下一步 请输入正文"
+
+
+@pytest.mark.asyncio
 async def test_prepare_for_task_cold_starts_and_opens_works_page() -> None:
     driver = FakeUiDriver(
         [

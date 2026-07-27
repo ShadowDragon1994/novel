@@ -104,6 +104,22 @@ class FanqiePublishWorkflow:
 
         await FanqieWorkSetupWorkflow(self.driver).ensure(work)
 
+    async def _open_editor_from_chapter_list(self) -> str:
+        """Open the editor, tolerating a missed feather-button tap."""
+        latest = await self.driver.screen_text()
+        for _ in range(3):
+            try:
+                latest = await self._tap("chapter_list", "start_new_chapter")
+                if self._is_editor(latest):
+                    return latest
+            except (TimeoutError, WorkflowError):
+                latest = await self.driver.screen_text()
+                if self._is_editor(latest):
+                    return latest
+                if "章节管理" not in latest:
+                    raise
+        raise WorkflowError(f"cannot open chapter editor after 3 attempts: {latest[:200]!r}")
+
     def _action(self, state: str, action: str) -> ResolvedAction:
         return self.profile.resolve(state, action, width=self.driver.width, height=self.driver.height)
 
@@ -171,7 +187,7 @@ class FanqiePublishWorkflow:
 
         try:
             if "章节管理" in initial_text:
-                editor_text = await self._tap("chapter_list", "start_new_chapter")
+                editor_text = await self._open_editor_from_chapter_list()
             elif self._is_editor(initial_text):
                 editor_text = initial_text
             else:

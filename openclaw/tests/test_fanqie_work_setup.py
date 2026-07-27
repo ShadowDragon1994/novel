@@ -52,6 +52,18 @@ async def test_ensure_work_opens_existing_target_without_creating_duplicate() ->
 
 
 @pytest.mark.asyncio
+async def test_ensure_work_accepts_bound_chapter_page_when_display_title_changed() -> None:
+    driver = FakeDriver(["章节管理 已发布 第1章 平台中已改名的作品"])
+
+    await FanqieWorkSetupWorkflow(driver).ensure(
+        WorkMetadata("飞书里的旧书名", "作品简介" * 20, "林玄")
+    )
+
+    assert driver.tapped == []
+    assert driver.replacements == []
+
+
+@pytest.mark.asyncio
 async def test_ensure_work_creates_first_work_and_enters_chapter_management() -> None:
     driver = FakeDriver(
         [

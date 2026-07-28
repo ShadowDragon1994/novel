@@ -410,6 +410,26 @@ async def test_publish_waits_for_target_after_submission_success_returns_to_draf
 
 
 @pytest.mark.asyncio
+async def test_publish_accepts_new_submitted_review_eta_copy() -> None:
+    driver = FakeUiDriver(
+        [
+            "已提交，预计1小时内完成审核 暂无草稿 章节管理 草稿箱",
+            "已提交，预计1小时内完成审核 暂无草稿 章节管理 草稿箱",
+            "章节管理 审核中 第3章 变异种子",
+            "章节的内容：审核中 第3章 变异种子",
+            "章节管理 审核中 第3章 变异种子",
+        ]
+    )
+
+    result = await FanqiePublishWorkflow(driver).publish(
+        PublishChapter(number=3, title="第三章：变异种子", content="正文" * 1000)
+    )
+
+    assert result.status == "审核中"
+    assert driver.containing_descriptions == ["章节管理", "变异种子"]
+
+
+@pytest.mark.asyncio
 async def test_publish_handles_submission_success_during_active_transition() -> None:
     driver = FakeUiDriver(
         [

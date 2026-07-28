@@ -138,7 +138,7 @@ class FanqiePublishWorkflow:
         platform_title = self._platform_title(chapter.title)
         chapter_label = f"第{chapter.number}章 {platform_title}"
         initial_text = await self.driver.screen_text()
-        if "提交成功" in initial_text and "章节管理" in initial_text:
+        if self._is_submission_success_page(initial_text):
             await self.driver.tap_description_contains("章节管理")
             initial_text = await self.driver.wait_for_any(("审核中", "已发布"))
         existing_status = self._existing_status(initial_text, chapter_label)
@@ -233,7 +233,7 @@ class FanqiePublishWorkflow:
             status = self._existing_status(text, chapter_label)
             if status:
                 return PublishResult(chapter_label=chapter_label, status=status)
-            if "提交成功" in text and "章节管理" in text:
+            if self._is_submission_success_page(text):
                 await self.driver.tap_description_contains("章节管理")
                 text = await self.driver.wait_for_any(("审核中", "已发布"))
                 continue
@@ -264,6 +264,12 @@ class FanqiePublishWorkflow:
     @staticmethod
     def _is_editor(text: str) -> bool:
         return "下一步" in text and ("AI工具箱" in text or "已保存到云端" in text or "请输入正文" in text)
+
+    @staticmethod
+    def _is_submission_success_page(text: str) -> bool:
+        return "章节管理" in text and (
+            "提交成功" in text or ("已提交" in text and "完成审核" in text)
+        )
 
     @staticmethod
     def _existing_status(text: str, chapter_label: str) -> str | None:

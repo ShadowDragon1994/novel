@@ -142,6 +142,80 @@ async def test_watchdog_pauses_novel_with_critical_inventory() -> None:
 
 
 @pytest.mark.asyncio
+async def test_watchdog_counts_finalized_pending_publish_as_inventory() -> None:
+    chapters = [
+        {
+            "fields": {
+                "章节ID": f"c{index}",
+                "小说ID": "n1",
+                "生产状态": "已定稿/Finalized",
+                "发布状态": "待发布/Pending Publish",
+            }
+        }
+        for index in range(6)
+    ]
+
+    report = await Watchdog(FakeFeishu(chapters=chapters)).run_once()
+
+    assert not any(alert.category == "inventory" for alert in report.alerts)
+
+
+@pytest.mark.asyncio
+async def test_watchdog_resumes_only_inventory_paused_novel_after_stock_recovers() -> None:
+    class RecoveringFeishu(FakeFeishu):
+        def __init__(self):
+            super().__init__(
+                chapters=[
+                    {
+                        "fields": {
+                            "章节ID": f"c{index}",
+                            "小说ID": "n1",
+                            "生产状态": "已定稿/Finalized",
+                            "发布状态": "待发布/Pending Publish",
+                        }
+                    }
+                    for index in range(3)
+                ]
+            )
+            self.updated = []
+
+        async def list_records(self, table_name):
+            if table_name == "章节任务表":
+                return self.chapters
+            if table_name == "小说总览表":
+                return [
+                    {
+                        "record_id": "novel-1",
+                        "fields": {
+                            "小说ID": "n1",
+                            "自动发布开关": False,
+                            "发布暂停原因": "存稿不足",
+                        },
+                    },
+                    {
+                        "record_id": "novel-2",
+                        "fields": {
+                            "小说ID": "n2",
+                            "自动发布开关": False,
+                            "发布暂停原因": "人工暂停",
+                        },
+                    },
+                ]
+            return []
+
+        async def update_record(self, table_name, record_id, fields):
+            self.updated.append((table_name, record_id, fields))
+            return {"record_id": record_id, "fields": fields}
+
+    feishu = RecoveringFeishu()
+    await Watchdog(feishu).run_once()
+
+    assert feishu.updated == [
+        ("小说总览表", "novel-1", {"自动发布开关": True, "发布暂停原因": ""})
+    ]
+
+
+@pytest.mark.asyncio
 async def test_watchdog_alerts_when_confirmation_queue_exceeds_threshold() -> None:
     class ConfirmationFeishu(FakeFeishu):
         async def list_records(self, table_name):

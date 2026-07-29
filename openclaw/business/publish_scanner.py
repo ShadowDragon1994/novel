@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from business.chapter_validation import validate_chapter_text
 from business.device_controller import DeviceController
 from business.guard_layer import GuardLayer
 from core.config import load_settings
@@ -80,6 +81,7 @@ class PublishScanner:
             await self._mark_failure(record, RuntimeError("missing account_id"), account_id="")
             return None
         try:
+            validate_chapter_text(fields)
             device_id = await self._resolve_device_id(account_id)
             content = await self._load_final_content(chapter_id)
             work = {}

@@ -76,6 +76,8 @@ states:
         requires_confirmation: true
         verify_any:
           - 请选择内容检测方式
+          - 发布设置
+          - 确认发布
   content_detection:
     actions:
       basic_check:

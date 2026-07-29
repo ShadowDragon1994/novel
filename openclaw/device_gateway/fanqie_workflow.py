@@ -277,6 +277,13 @@ class FanqiePublishWorkflow:
             return None
         normalized_text = normalize_semantic_text(text)
         normalized_label = normalize_semantic_text(chapter_label)
+        chapter_number = re.match(r"第(\d+)章", normalized_label)
+        if (
+            "修改审核中" in normalized_text
+            and chapter_number
+            and f"第{chapter_number.group(1)}章" in normalized_text
+        ):
+            return "审核中"
         label_index = normalized_text.find(normalized_label)
         if label_index < 0:
             return None

@@ -313,6 +313,18 @@ async def test_production_scanner_records_pipeline_failure_and_retry(tmp_path: P
 
 
 @pytest.mark.asyncio
+async def test_production_scanner_rejects_mojibake_title_and_card(tmp_path: Path) -> None:
+    record = make_record("rec-1", "c1")
+    record["fields"]["章节名"] = "????????"
+    record["fields"]["章节卡内容"] = "????????????????"
+    scanner, pipeline, guard = make_scanner([record], tmp_path)
+
+    assert await scanner.run_once() == []
+    assert pipeline.chapters == []
+    assert "疑似乱码" in guard.writes[0][2]["错误信息"]
+
+
+@pytest.mark.asyncio
 async def test_production_scanner_writes_final_version_metadata(tmp_path: Path) -> None:
     class ResultPipeline(FakePipeline):
         async def run_chapter(self, chapter):

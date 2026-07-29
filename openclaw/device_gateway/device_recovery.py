@@ -43,8 +43,12 @@ class DeviceRecoveryManager:
             if "放弃编辑" in text and "保存草稿" in text:
                 await self.driver.tap_description("保存草稿")
                 continue
-            if ("下一步" in text or "AI工具箱" in text) and "已保存到云端" not in text:
-                await self.driver.wait_for_any(("已保存到云端",))
+            if (
+                ("下一步" in text or "AI工具箱" in text)
+                and "已保存到云端" not in text
+                and "已保存" not in text
+            ):
+                await self.driver.wait_for_any(("已保存到云端", "已保存"))
             await self.driver.press_back()
         if self._is_safe_baseline(await self.driver.screen_text()):
             return

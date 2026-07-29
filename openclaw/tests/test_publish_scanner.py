@@ -267,7 +267,18 @@ async def test_scanner_reconciles_under_review_chapter_during_account_warmup() -
 
     assert await scanner.run_once() == ["c1"]
     assert len(device.calls) == 1
-    assert guard.writes[0][2]["发布状态"] == "发布成功/Published"
+
+
+@pytest.mark.asyncio
+async def test_scanner_rejects_mojibake_title_before_device_call() -> None:
+    corrupted = chapter("c1")
+    corrupted["fields"]["章节名"] = "????????"
+    feishu = FakeFeishu(chapters=[corrupted])
+    scanner, guard, device = make_scanner(feishu)
+
+    assert await scanner.run_once() == []
+    assert device.calls == []
+    assert "疑似乱码" in guard.writes[0][2]["错误信息"]
 
 
 @pytest.mark.asyncio

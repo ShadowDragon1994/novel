@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from business.chapter_validation import validate_chapter_text
 from business.guard_layer import GuardLayer
 from business.llm_pipeline import FeishuVersionStore, LLMPipeline, PipelineStep
 from business.settings_extractor import SettingsExtractor
@@ -125,6 +126,7 @@ class ProductionScanner:
             if not self.task_lock.acquire(chapter_id, "llm_pipeline", os.getpid()):
                 return None
             try:
+                validate_chapter_text(fields)
                 pipeline_result = await self.pipeline.run_chapter(fields)
                 final_content = str(getattr(pipeline_result, "final_content", "") or "")
                 review_fields: dict[str, Any] = {"生产状态": "待人工审核/Pending Review"}

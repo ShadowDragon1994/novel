@@ -42,6 +42,15 @@ async def test_recovery_returns_saved_editor_to_chapter_management() -> None:
 
 
 @pytest.mark.asyncio
+async def test_recovery_accepts_short_saved_label_from_revision_editor() -> None:
+    driver = FakeRecoveryDriver(["已保存 3050字 下一步", "章节管理"])
+
+    await DeviceRecoveryManager(driver).recover()
+
+    assert driver.back_presses == 1
+
+
+@pytest.mark.asyncio
 async def test_recovery_accepts_zero_width_characters_in_chapter_management() -> None:
     driver = FakeRecoveryDriver(["章\u200b节\u200b管\u200b理 草稿箱"])
 

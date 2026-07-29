@@ -232,6 +232,14 @@ async def test_publish_strips_redundant_chapter_prefix_from_platform_title() -> 
     assert result.chapter_label == "第2章 化工厂深处"
 
 
+def test_existing_status_recognizes_pending_revision_before_new_title_is_visible() -> None:
+    text = "修改审核中 第3章 ????????? 已发布 第2章 戒中残魂"
+
+    status = FanqiePublishWorkflow._existing_status(text, "第3章 传承第一课")
+
+    assert status == "审核中"
+
+
 @pytest.mark.asyncio
 async def test_publish_resumes_cloud_saved_editor_and_returns_to_chapter_list() -> None:
     driver = FakeUiDriver(

@@ -35,3 +35,21 @@ async def test_run_device_reconnects_once_after_closed_transport() -> None:
         ("connect", "127.0.0.1:50125"),
         ("-s", "127.0.0.1:50125", "get-state"),
     ]
+
+
+@pytest.mark.asyncio
+async def test_run_device_reconnects_once_after_command_timeout() -> None:
+    adb = ReconnectingAdbClient()
+    original_run = adb._run
+
+    async def timeout_once(*args: str) -> str:
+        if args[:2] == ("-s", "127.0.0.1:50125") and adb.device_attempts == 0:
+            adb.calls.append(args)
+            adb.device_attempts += 1
+            raise AdbError("ADB command timed out after 15s")
+        return await original_run(*args)
+
+    adb._run = timeout_once  # type: ignore[method-assign]
+
+    assert await adb.run_device("127.0.0.1:50125", "shell", "input", "keyevent", "KEYCODE_HOME") == "ok"
+    assert ("connect", "127.0.0.1:50125") in adb.calls

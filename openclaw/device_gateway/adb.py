@@ -51,7 +51,10 @@ class AdbClient:
     @staticmethod
     def _is_disconnected_error(exc: AdbError) -> bool:
         detail = str(exc).lower()
-        return any(marker in detail for marker in ("error: closed", "device offline", "not found"))
+        return any(
+            marker in detail
+            for marker in ("error: closed", "device offline", "not found", "command timed out")
+        )
 
     async def _run(self, *args: str) -> str:
         try:

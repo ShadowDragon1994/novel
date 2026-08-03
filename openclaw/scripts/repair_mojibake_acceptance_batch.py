@@ -127,11 +127,11 @@ PUBLISHED_CHAPTER_IDS = {
 }
 
 DEVICE_BY_NOVEL = {
-    "NOVEL-01": "127.0.0.1:54511",
-    "NOVEL-02": "127.0.0.1:54510",
-    "NOVEL-03": "127.0.0.1:54512",
-    "NOVEL-04": "127.0.0.1:54513",
-    "NOVEL-05": "127.0.0.1:54518",
+    "NOVEL-01": "127.0.0.1:59380",
+    "NOVEL-02": "127.0.0.1:59378",
+    "NOVEL-03": "127.0.0.1:59381",
+    "NOVEL-04": "127.0.0.1:59382",
+    "NOVEL-05": "127.0.0.1:59386",
 }
 
 
@@ -283,6 +283,32 @@ async def report_status() -> list[dict[str, Any]]:
     return sorted(result, key=lambda item: str(item["章节ID"]))
 
 
+async def reset_publish_retries(*, apply: bool) -> int:
+    load_dotenv(PROJECT_ROOT / "config" / ".env")
+    wanted = {item.chapter_id for item in ACCEPTANCE_CHAPTERS}
+    updated = 0
+    async with FeishuClient() as client:
+        records = await client.list_records("章节任务表")
+        for record in records:
+            fields = record.get("fields", record)
+            if (
+                fields.get("章节ID") not in wanted
+                or fields.get("发布状态") != "待发布/Pending Publish"
+            ):
+                continue
+            update = {"流程重试次数": 0, "错误信息": ""}
+            print(
+                json.dumps(
+                    {"chapter_id": fields.get("章节ID"), "update": update},
+                    ensure_ascii=False,
+                )
+            )
+            if apply:
+                await client.update_record("章节任务表", record["record_id"], update)
+            updated += 1
+    return updated
+
+
 async def async_main() -> int:
     parser = argparse.ArgumentParser(description="修复 2026-07-28 验收批次的乱码章节元数据")
     parser.add_argument("--apply", action="store_true", help="实际写入；默认只输出变更计划")
@@ -294,10 +320,19 @@ async def async_main() -> int:
     )
     parser.add_argument("--devices-only", action="store_true", help="只同步账号设备端口")
     parser.add_argument("--approve", action="store_true", help="将本批次 15 章标记为人工审核通过")
+    parser.add_argument(
+        "--reset-publish-retries",
+        action="store_true",
+        help="清理本批次待发布章节的失败计数和错误信息",
+    )
     args = parser.parse_args()
     if args.status:
         for item in await report_status():
             print(json.dumps(item, ensure_ascii=False))
+        return 0
+    if args.reset_publish_retries:
+        updated = await reset_publish_retries(apply=args.apply)
+        print(json.dumps({"applied": args.apply, "chapters": updated}, ensure_ascii=False))
         return 0
     counters = await repair(
         apply=args.apply,

@@ -17,11 +17,11 @@ from device_gateway.adb_ui_driver import AdbUiDriver
 from device_gateway.fanqie_workflow import FanqiePublishWorkflow, PublishChapter, PublishResult
 
 TARGETS = {
-    "NOVEL-01-CH-004": "127.0.0.1:54511",
-    "NOVEL-02-CH-003": "127.0.0.1:54510",
-    "NOVEL-03-CH-003": "127.0.0.1:54512",
-    "NOVEL-04-CH-005": "127.0.0.1:54513",
-    "NOVEL-05-CH-003": "127.0.0.1:54518",
+    "NOVEL-01-CH-004": "127.0.0.1:59380",
+    "NOVEL-02-CH-003": "127.0.0.1:59378",
+    "NOVEL-03-CH-003": "127.0.0.1:59381",
+    "NOVEL-04-CH-005": "127.0.0.1:59382",
+    "NOVEL-05-CH-003": "127.0.0.1:59386",
 }
 
 

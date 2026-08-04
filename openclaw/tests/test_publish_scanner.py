@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta
 
 import pytest
@@ -6,13 +7,36 @@ from business.publish_scanner import PublishScanner
 
 
 class FakeFeishu:
-    def __init__(self, chapters=None, records=None, novels=None, accounts=None) -> None:
+    def __init__(self, chapters=None, records=None, novels=None, accounts=None, versions=None) -> None:
         self.chapters = [] if chapters is None else chapters
         self.records = [] if records is None else records
         default_novels = [{"fields": {"小说ID": "n1", "关联账号": "acc-1", "自动发布开关": True}}]
-        default_accounts = [{"record_id": "acc-1", "fields": {"账号ID": "acc-1", "账号状态": "正常/Normal"}}]
+        default_accounts = [{
+            "record_id": "acc-1",
+            "fields": {
+                "账号ID": "acc-1",
+                "账号状态": "正常/Normal",
+                "红手指设备ID": "cloud-1",
+                "绑定小说ID": "n1",
+            },
+        }]
         self.novels = default_novels if novels is None else novels
         self.accounts = default_accounts if accounts is None else accounts
+        self.versions = (
+            [
+                {
+                    "fields": {
+                        "章节ID": item.get("fields", item)["章节ID"],
+                        "版本类型": "校对稿",
+                        "是否当前最终版": True,
+                        "版本内容": "最终正文",
+                    }
+                }
+                for item in self.chapters
+            ]
+            if versions is None
+            else versions
+        )
         self.created = []
         self.updated = []
 
@@ -22,6 +46,7 @@ class FakeFeishu:
             "发布记录表": self.records,
             "小说总览表": self.novels,
             "账号管理表": self.accounts,
+            "正文版本表": self.versions,
         }.get(table_name, [])
 
     async def create_record(self, table_name, fields):
@@ -43,14 +68,31 @@ class FakeGuard:
 
 
 class FakeDevice:
-    def __init__(self, fail: bool = False) -> None:
+    def __init__(self, fail: bool = False, status: str = "审核中") -> None:
         self.fail = fail
+        self.status = status
         self.calls = []
 
-    async def publish_chapter(self, chapter_id, account_id):
-        self.calls.append((chapter_id, account_id))
+    async def publish_chapter(self, chapter_id, account_id, **kwargs):
+        self.calls.append((chapter_id, account_id, kwargs))
         if self.fail:
             raise RuntimeError("device failed")
+        return {"chapter_label": f"第{kwargs['chapter_number']}章 {kwargs['title']}", "status": self.status}
+
+
+class SerialCheckingDevice(FakeDevice):
+    def __init__(self) -> None:
+        super().__init__()
+        self.active = 0
+        self.max_active = 0
+
+    async def publish_chapter(self, chapter_id, account_id, **kwargs):
+        self.active += 1
+        self.max_active = max(self.max_active, self.active)
+        await asyncio.sleep(0)
+        result = await super().publish_chapter(chapter_id, account_id, **kwargs)
+        self.active -= 1
+        return result
 
 
 def chapter(
@@ -71,6 +113,8 @@ def chapter(
             "生产状态": production_status,
             "内容锁定状态": locked,
             "当前版本": current_version,
+            "章节号": 2,
+            "章节名": "化工厂深处",
             "计划发布时间": (planned_at or datetime.now() - timedelta(minutes=1)).isoformat(),
             "流程重试次数": attempts,
         },
@@ -97,21 +141,73 @@ async def test_scanner_skips_future_chapter() -> None:
 
 
 @pytest.mark.asyncio
-async def test_scanner_skips_already_published() -> None:
+async def test_scanner_verifies_device_when_success_record_may_be_stale() -> None:
     feishu = FakeFeishu(
         chapters=[chapter("c1")],
+        novels=[{"fields": {"小说ID": "n1", "书名": "测试修真小说", "题材": "修真"}}],
         records=[{"fields": {"章节ID": "c1", "发布尝试状态": "成功/Success"}}],
+        accounts=[{
+            "record_id": "acc-1",
+            "fields": {
+                "账号ID": "acc-1",
+                "账号状态": "正常/Normal",
+                "红手指设备ID": "cloud-1",
+                "绑定小说ID": "n1",
+            },
+        }],
+        versions=[{
+            "fields": {
+                "章节ID": "c1",
+                "版本类型": "校对稿",
+                "是否当前最终版": True,
+                "版本内容": "最终正文",
+            },
+        }],
     )
     scanner, _, device = make_scanner(feishu)
-    assert await scanner.run_once() == []
-    assert device.calls == []
+    assert await scanner.run_once() == ["c1"]
+    assert len(device.calls) == 1
 
 
 @pytest.mark.asyncio
 async def test_scanner_calls_device_controller() -> None:
-    scanner, _, device = make_scanner(FakeFeishu(chapters=[chapter("c1")]))
+    feishu = FakeFeishu(
+        chapters=[chapter("c1")],
+        novels=[{"fields": {"小说ID": "n1", "书名": "测试修真小说", "题材": "修真"}}],
+        accounts=[{
+            "record_id": "acc-1",
+            "fields": {
+                "账号ID": "acc-1",
+                "账号状态": "正常/Normal",
+                "红手指设备ID": "cloud-1",
+                "绑定小说ID": "n1",
+            },
+        }],
+        versions=[{
+            "fields": {"章节ID": "c1", "版本类型": "校对稿", "是否当前最终版": True, "版本内容": "最终正文"},
+        }],
+    )
+    scanner, _, device = make_scanner(feishu)
     await scanner.run_once()
-    assert device.calls == [("c1", "acc-1")]
+    assert device.calls == [(
+        "c1",
+        "acc-1",
+        {
+            "device_id": "cloud-1",
+            "platform": "fanqie",
+            "chapter_number": 2,
+            "title": "化工厂深处",
+            "content": "最终正文",
+            "work_name": "测试修真小说",
+            "work_introduction": (
+                "测试修真小说讲述主角在危机中成长并守护同伴，逐步揭开世界秘密的长篇故事。"
+                "故事围绕修真展开，展现人物面对选择时的坚持、勇气与改变。"
+            ),
+            "work_protagonist": "主角",
+            "work_audience": "男频",
+            "work_category": "东方仙侠",
+        },
+    )]
 
 
 @pytest.mark.asyncio
@@ -120,8 +216,82 @@ async def test_scanner_marks_success_on_device_ok() -> None:
     scanner, guard, _ = make_scanner(feishu)
     assert await scanner.run_once() == ["c1"]
     assert feishu.created[0][0] == "发布记录表"
+    assert feishu.created[0][1]["发布尝试状态"] == "已提交/Submitted"
+    assert guard.writes[0][2]["发布状态"] == "审核中/Under Review"
+    assert guard.writes[0][2]["错误信息"] == ""
+
+
+@pytest.mark.asyncio
+async def test_scanner_reconciles_under_review_chapter_until_published() -> None:
+    feishu = FakeFeishu(chapters=[chapter("c1", status="审核中/Under Review")])
+    scanner, guard, _ = make_scanner(feishu, FakeDevice(status="已发布"))
+
+    assert await scanner.run_once() == ["c1"]
+
     assert feishu.created[0][1]["发布尝试状态"] == "成功/Success"
     assert guard.writes[0][2]["发布状态"] == "发布成功/Published"
+    assert isinstance(guard.writes[0][2]["实际发布时间"], int)
+
+
+@pytest.mark.asyncio
+async def test_scanner_reconciliation_does_not_trigger_work_setup() -> None:
+    feishu = FakeFeishu(
+        chapters=[chapter("c1", status="审核中/Under Review")],
+        novels=[{"fields": {"小说ID": "n1", "书名": "测试修真小说", "题材": "修真"}}],
+    )
+    scanner, _, device = make_scanner(feishu, FakeDevice(status="已发布"))
+
+    assert await scanner.run_once() == ["c1"]
+    assert "work_name" not in device.calls[0][2]
+
+
+@pytest.mark.asyncio
+async def test_scanner_reconciles_under_review_chapter_during_account_warmup() -> None:
+    feishu = FakeFeishu(
+        chapters=[chapter("c1", status="审核中/Under Review")],
+        accounts=[
+            {
+                "record_id": "acc-1",
+                "fields": {
+                    "账号ID": "acc-1",
+                    "账号状态": "正常/Normal",
+                    "账号健康状态": "正常/Normal",
+                    "账号阶段": "养号期",
+                    "红手指设备ID": "cloud-1",
+                    "绑定小说ID": "n1",
+                },
+            }
+        ],
+    )
+    scanner, guard, device = make_scanner(feishu, FakeDevice(status="已发布"))
+
+    assert await scanner.run_once() == ["c1"]
+    assert len(device.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_scanner_rejects_mojibake_title_before_device_call() -> None:
+    corrupted = chapter("c1")
+    corrupted["fields"]["章节名"] = "????????"
+    feishu = FakeFeishu(chapters=[corrupted])
+    scanner, guard, device = make_scanner(feishu)
+
+    assert await scanner.run_once() == []
+    assert device.calls == []
+    assert "疑似乱码" in guard.writes[0][2]["错误信息"]
+
+
+@pytest.mark.asyncio
+async def test_scanner_does_not_duplicate_submitted_record_during_reconciliation() -> None:
+    feishu = FakeFeishu(
+        chapters=[chapter("c1", status="审核中/Under Review")],
+        records=[{"fields": {"章节ID": "c1", "发布尝试状态": "已提交/Submitted"}}],
+    )
+    scanner, _, _ = make_scanner(feishu)
+
+    await scanner.run_once()
+
+    assert feishu.created == []
 
 
 @pytest.mark.asyncio
@@ -149,15 +319,73 @@ async def test_scanner_handles_empty_queue() -> None:
 
 
 @pytest.mark.asyncio
+async def test_scanner_serializes_chapters_for_the_same_device() -> None:
+    device = SerialCheckingDevice()
+    scanner, _, _ = make_scanner(
+        FakeFeishu(chapters=[chapter("c1"), chapter("c2")]),
+        device,
+    )
+
+    await scanner.run_once()
+
+    assert device.max_active == 1
+
+
+@pytest.mark.asyncio
 async def test_scanner_resolves_account_from_account_table() -> None:
     feishu = FakeFeishu(
         chapters=[chapter("c1")],
         novels=[{"fields": {"小说ID": "n1", "自动发布开关": True}}],
-        accounts=[{"record_id": "acc-rec", "fields": {"绑定小说ID": "n1", "账号ID": "acc-2"}}],
+        accounts=[{
+            "record_id": "acc-rec",
+            "fields": {"绑定小说ID": "n1", "账号ID": "acc-2", "红手指设备ID": "cloud-2"},
+        }],
     )
     scanner, _, device = make_scanner(feishu)
     await scanner.run_once()
-    assert device.calls == [("c1", "acc-2")]
+    assert device.calls[0][:2] == ("c1", "acc-2")
+
+
+@pytest.mark.asyncio
+async def test_scanner_resolves_id_field_from_account_table() -> None:
+    feishu = FakeFeishu(
+        chapters=[chapter("c1")],
+        novels=[{"fields": {"小说ID": "n1", "自动发布开关": True}}],
+        accounts=[{
+            "record_id": "acc-rec",
+            "fields": {"绑定小说ID": "n1", "ID": "acc-2", "红手指设备ID": "cloud-2"},
+        }],
+    )
+    scanner, _, device = make_scanner(feishu)
+
+    await scanner.run_once()
+
+    assert device.calls[0][:2] == ("c1", "acc-2")
+    assert device.calls[0][2]["device_id"] == "cloud-2"
+
+
+@pytest.mark.asyncio
+async def test_scanner_resolves_business_account_id_from_feishu_link() -> None:
+    feishu = FakeFeishu(
+        chapters=[chapter("c1")],
+        novels=[{
+            "fields": {
+                "小说ID": "n1",
+                "关联账号": [{"record_id": "acc-rec"}],
+                "自动发布开关": True,
+            }
+        }],
+        accounts=[{
+            "record_id": "acc-rec",
+            "fields": {"ID": "acc-2", "账号状态": "正常/Normal", "红手指设备ID": "cloud-2"},
+        }],
+    )
+    scanner, _, device = make_scanner(feishu)
+
+    await scanner.run_once()
+
+    assert device.calls[0][:2] == ("c1", "acc-2")
+    assert device.calls[0][2]["device_id"] == "cloud-2"
 
 
 @pytest.mark.asyncio

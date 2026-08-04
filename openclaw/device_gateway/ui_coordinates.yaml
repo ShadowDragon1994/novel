@@ -11,9 +11,16 @@ states:
         y: 1224
         next_state: works_page
         verify_any:
-          - 作品
+          - 连载中
+          - 去创作
   works_page:
     actions:
+      open_first_work:
+        x: 268
+        y: 650
+        next_state: chapter_list
+        verify_any:
+          - 章节管理
       start_creation:
         x: 344
         y: 993
@@ -53,6 +60,7 @@ states:
         next_state: typo_confirmation
         verify_any:
           - 检测到您还有错别字未修改，是否确认提交？
+          - 请选择内容检测方式
   typo_confirmation:
     actions:
       cancel:
@@ -68,6 +76,8 @@ states:
         requires_confirmation: true
         verify_any:
           - 请选择内容检测方式
+          - 发布设置
+          - 确认发布
   content_detection:
     actions:
       basic_check:
@@ -89,7 +99,7 @@ states:
     actions:
       select_ai_usage:
         x: 580
-        y: 585
+        y: 707
         next_state: ai_declaration
         verify_any:
           - 有使用AI
@@ -119,6 +129,9 @@ states:
         requires_confirmation: true
         verify_any:
           - 确定要提交章节？
+          - 章节管理
+          - 审核中
+          - 已发布
   ai_declaration:
     actions:
       used_ai:

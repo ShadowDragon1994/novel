@@ -9,6 +9,8 @@ from core.config import load_settings
 from core.feishu_client import FeishuClient
 
 INVENTORY_STATUSES = {"待人工审核", "待人工审核/Pending Review", "待发布", "待发布/Pending Publish"}
+PENDING_PUBLISH_STATUSES = {"待发布", "待发布/Pending Publish"}
+INVENTORY_PAUSE_REASON = "存稿不足"
 CONFIRMATION_TABLES = {"人物档案表", "世界观设定表", "势力组织表", "伏笔追踪表", "长期记忆表"}
 PENDING_CONFIRMATION = {"待确认", "待确认/Pending"}
 
@@ -57,7 +59,7 @@ class Watchdog:
         return report
 
     def _check_inventory(self, report: WatchdogReport, chapters: list[dict[str, Any]]) -> None:
-        count = sum(1 for record in chapters if record.get("fields", record).get("生产状态") in INVENTORY_STATUSES)
+        count = sum(1 for record in chapters if self._is_inventory_chapter(record.get("fields", record)))
         if count < self.pause_threshold:
             report.critical("inventory", f"存稿仅剩 {count} 章")
         elif count < self.safety_threshold:
@@ -77,18 +79,36 @@ class Watchdog:
         for record in chapters:
             fields = record.get("fields", record)
             novel_id = str(fields.get("小说ID") or "")
-            if novel_id and fields.get("生产状态") in INVENTORY_STATUSES:
+            if novel_id and self._is_inventory_chapter(fields):
                 inventory_by_novel[novel_id] = inventory_by_novel.get(novel_id, 0) + 1
         novels = await self.feishu_client.list_records("小说总览表")
         for record in novels:
             fields = record.get("fields", record)
             novel_id = str(fields.get("小说ID") or "")
-            if novel_id and inventory_by_novel.get(novel_id, 0) < self.pause_threshold:
+            if not novel_id:
+                continue
+            available = inventory_by_novel.get(novel_id, 0)
+            switch_enabled = fields.get("自动发布开关") is True
+            pause_reason = str(fields.get("发布暂停原因") or "")
+            if available < self.pause_threshold and switch_enabled:
                 await self.feishu_client.update_record(
                     "小说总览表",
                     str(record.get("record_id") or novel_id),
-                    {"自动发布开关": False, "发布暂停原因": "存稿不足"},
+                    {"自动发布开关": False, "发布暂停原因": INVENTORY_PAUSE_REASON},
                 )
+            elif available >= self.pause_threshold and pause_reason == INVENTORY_PAUSE_REASON:
+                await self.feishu_client.update_record(
+                    "小说总览表",
+                    str(record.get("record_id") or novel_id),
+                    {"自动发布开关": True, "发布暂停原因": ""},
+                )
+
+    @staticmethod
+    def _is_inventory_chapter(fields: dict[str, Any]) -> bool:
+        return (
+            fields.get("生产状态") in INVENTORY_STATUSES
+            or fields.get("发布状态") in PENDING_PUBLISH_STATUSES
+        )
 
     async def _check_confirmation_queue(self, report: WatchdogReport) -> None:
         pending = 0

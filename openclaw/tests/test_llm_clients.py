@@ -14,13 +14,27 @@ def make_http_client(handler):
     return httpx.AsyncClient(base_url="https://example.test", transport=httpx.MockTransport(handler))
 
 
+@pytest.mark.asyncio
+async def test_owned_http_client_ignores_implicit_environment_proxy() -> None:
+    client = ChatCompletionClient(
+        api_key_env="TEST_API_KEY",
+        model="test-model",
+        base_url="https://example.com",
+    )
+
+    try:
+        assert client.http_client._trust_env is False
+    finally:
+        await client.close()
+
+
 @pytest.mark.parametrize(
     "client_cls,model",
     [
         (DeepSeekClient, "deepseek-chat"),
         (DoubaoClient, "doubao-seed-2-0-pro-260215"),
         (QwenClient, "qwen-plus"),
-        (WenxinClient, "ernie-4.0-turbo-128k"),
+        (WenxinClient, "ernie-4.5-turbo-128k"),
     ],
 )
 def test_model_clients_have_expected_model_names(client_cls, model) -> None:

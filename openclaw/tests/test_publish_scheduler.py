@@ -58,6 +58,12 @@ def make_scheduler(chapters, novels=None):
     return scheduler, guard
 
 
+def written_datetime(value) -> datetime:
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(value / 1000)
+    return datetime.fromisoformat(value)
+
+
 @pytest.mark.asyncio
 async def test_scheduler_scans_pending_chapters() -> None:
     scheduler, _ = make_scheduler([chapter("r1", "c1"), chapter("r2", "c2", status="生成中/Generating")])
@@ -82,7 +88,7 @@ async def test_scheduler_can_assign_three_chapters_with_dense_slots() -> None:
     )
     result = await scheduler.generate_daily_plan(now=datetime(2026, 5, 23, 8, 10))
     assert result.assigned == ["c1", "c2", "c3"]
-    slots = [datetime.fromisoformat(write[2]["计划发布时间"]) for write in guard.writes]
+    slots = [written_datetime(write[2]["计划发布时间"]) for write in guard.writes]
     assert all(abs(slots[index + 1] - slots[index]).total_seconds() >= 6 * 3600 for index in range(2))
 
 
@@ -90,7 +96,7 @@ async def test_scheduler_can_assign_three_chapters_with_dense_slots() -> None:
 async def test_scheduler_enforces_6h_gap() -> None:
     scheduler, guard = make_scheduler([chapter("r1", "c1"), chapter("r2", "c2")])
     await scheduler.generate_daily_plan(now=datetime(2026, 5, 23, 8, 10))
-    slots = [datetime.fromisoformat(write[2]["计划发布时间"]) for write in guard.writes]
+    slots = [written_datetime(write[2]["计划发布时间"]) for write in guard.writes]
     assert abs(slots[1] - slots[0]).total_seconds() >= 6 * 3600
 
 
@@ -98,7 +104,7 @@ async def test_scheduler_enforces_6h_gap() -> None:
 async def test_scheduler_distributes_across_time_window() -> None:
     scheduler, guard = make_scheduler([chapter("r1", "c1")])
     await scheduler.generate_daily_plan(now=datetime(2026, 5, 23, 8, 10))
-    slot = datetime.fromisoformat(guard.writes[0][2]["计划发布时间"])
+    slot = written_datetime(guard.writes[0][2]["计划发布时间"])
     assert slot.hour >= 8
     assert slot.hour <= 22
 
@@ -109,7 +115,17 @@ async def test_scheduler_updates_publish_status() -> None:
     await scheduler.generate_daily_plan(now=datetime(2026, 5, 23, 8, 10))
     assert guard.writes[0][2]["发布状态"] == "待发布/Pending Publish"
     assert "排班批次" in guard.writes[0][2]
-    assert "排班生成时间" in guard.writes[0][2]
+    assert "生成时间" in guard.writes[0][2]
+
+
+@pytest.mark.asyncio
+async def test_scheduler_writes_feishu_datetime_as_milliseconds() -> None:
+    scheduler, guard = make_scheduler([chapter("r1", "c1")])
+
+    await scheduler.generate_daily_plan(now=datetime(2026, 5, 23, 8, 10))
+
+    assert isinstance(guard.writes[0][2]["计划发布时间"], int)
+    assert isinstance(guard.writes[0][2]["生成时间"], int)
 
 
 @pytest.mark.asyncio
@@ -166,7 +182,7 @@ async def test_scheduler_morning_batch_only_new_chapters() -> None:
 async def test_scheduler_evening_batch_schedules_next_day() -> None:
     scheduler, guard = make_scheduler([chapter("r1", "c1")])
     await scheduler.generate_daily_plan(now=datetime(2026, 5, 23, 23, 0))
-    slot = datetime.fromisoformat(guard.writes[0][2]["计划发布时间"])
+    slot = written_datetime(guard.writes[0][2]["计划发布时间"])
     assert slot.date() == date(2026, 5, 24)
 
 
@@ -179,7 +195,7 @@ async def test_scheduler_applies_jitter() -> None:
     await scheduler.generate_daily_plan(now=datetime(2026, 5, 23, 8, 10))
     slots = [write[2]["计划发布时间"] for write in guard.writes]
     assert len(set(slots)) == 2
-    assert all(35 <= datetime.fromisoformat(slot).minute <= 50 for slot in slots)
+    assert all(35 <= written_datetime(slot).minute <= 50 for slot in slots)
 
 
 @pytest.mark.asyncio

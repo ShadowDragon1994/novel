@@ -165,10 +165,10 @@ class PublishScheduler:
             "章节任务表",
             record_id,
             {
-                "计划发布时间": slot.isoformat(),
+                "计划发布时间": int(slot.timestamp() * 1000),
                 "发布状态": "待发布/Pending Publish",
                 "排班批次": f"batch-{slot.date().isoformat()}",
-                "排班生成时间": datetime.now().isoformat(),
+                "生成时间": int(datetime.now().timestamp() * 1000),
             },
         )
 

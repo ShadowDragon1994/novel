@@ -45,7 +45,11 @@ class ChatCompletionClient(LLMClient):
         self.endpoint = endpoint
         self.rate_limiter = rate_limiter or RateLimiter(qps=2, capacity=2)
         self.circuit_breaker = circuit_breaker or CircuitBreaker()
-        self.http_client = http_client or httpx.AsyncClient(base_url=self.base_url, timeout=timeout)
+        self.http_client = http_client or httpx.AsyncClient(
+            base_url=self.base_url,
+            timeout=timeout,
+            trust_env=False,
+        )
         self._owns_client = http_client is None
         self.temperature = temperature
 

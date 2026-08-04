@@ -1,46 +1,72 @@
-# OpenClaw
+# OpenClaw 小说闭环系统
 
-OpenClaw（小龙虾）是一个单进程 Python 编排服务，以飞书多维表为唯一业务数据源，使用 SQLite 承担读缓存、任务锁和发布去重。
+OpenClaw 是一个单进程 Python 编排服务，以飞书多维表格作为业务数据源，通过 ADB 控制番茄作家助手，完成章节生成、人工审核、排期、发布、状态对账和异常恢复。
 
-## Quick Start
+## 环境要求
+
+- Windows 10/11
+- Python 3.10 或更高版本
+- Android platform-tools（ADB）
+- 已登录番茄作家助手的云手机
+- 飞书应用及多维表格访问权限
+- 已配置的模型 API
+
+## 安装
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-copy config\.env.example config\.env
-python main.py
+Copy-Item config\.env.example config\.env
 ```
 
-## Tests
+填写 `config/.env` 后，先执行健康检查：
 
 ```powershell
-python -m pytest -q
+.\.venv\Scripts\python.exe scripts\healthcheck.py
 ```
 
-## Device Gateway
+## 运行
 
-The local gateway is disabled from publishing until a platform workflow is configured. Start its ADB health and
-device-status endpoints on loopback with:
+单周期运行：
 
 ```powershell
-python -m uvicorn device_gateway.app:app --host 127.0.0.1 --port 8080
+.\.venv\Scripts\python.exe closed_loop.py --once
 ```
 
-Set `ADB_PATH` when `adb` is not available on `PATH`, then verify `GET /health` and
-`GET /devices/{device_id}` before enabling the publish scanner.
+无人值守运行：
 
-Known UI-only actions are stored in `device_gateway/ui_coordinates.yaml`. Each coordinate is bound to its source
-page and reference resolution; `CoordinateProfile.resolve()` scales it for the connected device. The Fanqie Writer
-`start_creation` action is valid only after `open_works` reaches `works_page`, and the editor must then expose
-`下一步` or `AI工具箱` before the workflow continues.
+```powershell
+.\.venv\Scripts\python.exe closed_loop.py --continuous
+```
 
-`pyproject.toml` sets `pythonpath = ["."]`, so tests can be run from the `openclaw/` directory without extra environment variables.
+程序会从 HOME 键开始重置设备页面，打开番茄作家助手，并按飞书任务状态执行生成、发布或状态对账。章节级幂等检查用于避免重复发布。
 
-## Architecture
+## 测试
 
-- `core/`: 可复用积木层，包含飞书客户端、缓存、锁、限流、断路器、日志。
-- `business/`: 小说业务层，包含 GuardLayer、LLM 生产、排班、发布、设定回写、监控。
-- `llm/`: 模型适配层，所有模型通过 `LLMClient` 接口调用。
-- `config/`: 运行配置、字段映射和本地密钥。
-- `tests/`: 优先覆盖 GuardLayer、TaskLock、CircuitBreaker、RateLimiter。
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m ruff check business device_gateway core tests
+.\.venv\Scripts\python.exe -m mypy business device_gateway core
+```
+
+## 配置
+
+- `config/config.yaml`：扫描周期、设备映射、并发、重试和发布窗口。
+- `config/field_mapping.yaml`：飞书表格及字段映射。
+- `config/.env`：本地密钥，不进入 Git。
+- `device_gateway/ui_coordinates.yaml`：720×1280 参考分辨率下的番茄页面动作。
+
+云手机端口变化后，需要同步修改 `config/config.yaml` 中的 `adb.devices`，并更新飞书账号管理表的“红手指设备ID”。
+
+## 目录
+
+- `business/`：生产、审核、排期、发布和看门狗逻辑。
+- `core/`：飞书客户端、限流、缓存、锁和日志。
+- `device_gateway/`：ADB 驱动、番茄状态机和页面恢复。
+- `llm/`：模型适配器。
+- `scripts/`：健康检查、数据修复和运维脚本。
+- `tests/`：自动化测试。
+- `docs/`：运维及验收文档。
+
+详细操作见 [`docs/运维操作手册.md`](docs/运维操作手册.md)。

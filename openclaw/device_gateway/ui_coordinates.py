@@ -9,6 +9,14 @@ import yaml
 DEFAULT_PROFILE_PATH = Path(__file__).with_name("ui_coordinates.yaml")
 
 
+def normalize_semantic_text(value: str) -> str:
+    return "".join(
+        character
+        for character in value
+        if not character.isspace() and character not in "\u200b:："
+    )
+
+
 class UiCoordinateError(ValueError):
     """Raised when an action is not valid for the current UI state."""
 

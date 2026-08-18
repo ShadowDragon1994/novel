@@ -65,7 +65,12 @@ class AdbUiDriver:
 
     async def _hierarchy(self) -> ET.Element:
         await self.adb.run_device(self.device_id, "shell", "uiautomator", "dump", UI_DUMP_PATH)
-        output = await self.adb.run_device(self.device_id, "shell", "cat", UI_DUMP_PATH)
+        run_bytes = getattr(self.adb, "run_device_bytes", None)
+        if run_bytes:
+            raw = await run_bytes(self.device_id, "exec-out", "cat", UI_DUMP_PATH)
+            output = self._decode_hierarchy_bytes(raw)
+        else:
+            output = await self.adb.run_device(self.device_id, "shell", "cat", UI_DUMP_PATH)
         start = output.find("<")
         end = output.rfind("</hierarchy>")
         if start < 0 or end < 0:
@@ -74,6 +79,17 @@ class AdbUiDriver:
             return ET.fromstring(output[start : end + len("</hierarchy>")])
         except ET.ParseError as exc:
             raise WorkflowError("Android UI hierarchy is invalid") from exc
+
+    @staticmethod
+    def _decode_hierarchy_bytes(raw: bytes) -> str:
+        for encoding in ("utf-8-sig", "utf-16", "utf-16le", "gbk"):
+            try:
+                text = raw.decode(encoding)
+            except UnicodeDecodeError:
+                continue
+            if "<hierarchy" in text:
+                return text
+        return raw.decode(errors="replace")
 
     async def screen_text(self) -> str:
         root = await self._hierarchy()
@@ -97,7 +113,29 @@ class AdbUiDriver:
 
     async def tap(self, point: tuple[int, int]) -> None:
         await self.adb.run_device(
-            self.device_id, "shell", "input", "tap", str(point[0]), str(point[1])
+            self.device_id,
+            "shell",
+            "input",
+            "touchscreen",
+            "tap",
+            str(point[0]),
+            str(point[1]),
+        )
+        await self._pause()
+
+    async def press(self, point: tuple[int, int], duration_ms: int = 120) -> None:
+        """Send an explicit touch down/up gesture for Flutter controls."""
+        await self.adb.run_device(
+            self.device_id,
+            "shell",
+            "input",
+            "touchscreen",
+            "swipe",
+            str(point[0]),
+            str(point[1]),
+            str(point[0]),
+            str(point[1]),
+            str(duration_ms),
         )
         await self._pause()
 
@@ -111,9 +149,17 @@ class AdbUiDriver:
                 await self.adb.run_device(
                     self.device_id, "shell", "input", "keyevent", "KEYCODE_DEL"
                 )
-            await self.adb.run_device(
-                self.device_id, "shell", "input", "text", value
-            )
+            # `input text` is ignored by the current Fanqie numeric field when
+            # ADB Keyboard is the active IME. Hardware digit key events are
+            # accepted consistently by both the Flutter field and Android IMEs.
+            for digit in value:
+                await self.adb.run_device(
+                    self.device_id,
+                    "shell",
+                    "input",
+                    "keyevent",
+                    f"KEYCODE_{digit}",
+                )
             await self._pause()
             return
         try:

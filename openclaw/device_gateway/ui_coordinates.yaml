@@ -69,6 +69,7 @@ states:
         next_state: chapter_editor
         verify_any:
           - 已保存到云端
+          - 已保存
       confirm:
         x: 508
         y: 749
@@ -122,6 +123,7 @@ states:
         next_state: chapter_editor
         verify_any:
           - 已保存到云端
+          - 已保存
       confirm_publish:
         x: 360
         y: 1140
@@ -149,6 +151,7 @@ states:
         requires_confirmation: true
         verify_any:
           - 审核中
+          - 文章内容有大段落重复
   chapter_list:
     actions:
       start_new_chapter:

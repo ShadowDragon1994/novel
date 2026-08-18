@@ -11,3 +11,5 @@ openclaw/data/*.sqlite-*
 openclaw/logs/*.log
 openclaw/output/
 openclaw/scripts/*_output.txt
+openclaw.zip
+交付物/

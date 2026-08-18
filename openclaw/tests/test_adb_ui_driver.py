@@ -70,7 +70,7 @@ async def test_tap_description_uses_accessibility_bounds_center() -> None:
 
     await driver.tap_description("有使用AI")
 
-    assert adb.commands[-1] == ("cloud-1", "shell", "input", "tap", "360", "958")
+    assert adb.commands[-1] == ("cloud-1", "shell", "input", "touchscreen", "tap", "360", "958")
 
 
 @pytest.mark.asyncio
@@ -82,7 +82,7 @@ async def test_tap_description_contains_uses_matching_accessibility_node() -> No
 
     await driver.tap_description_contains("第2章 化工厂深处")
 
-    assert adb.commands[-1] == ("cloud-1", "shell", "input", "tap", "360", "958")
+    assert adb.commands[-1] == ("cloud-1", "shell", "input", "touchscreen", "tap", "360", "958")
 
 
 @pytest.mark.asyncio
@@ -94,7 +94,7 @@ async def test_tap_description_contains_ignores_spacing_and_colon_variants() -> 
 
     await driver.tap_description_contains("第2章 化工厂深处")
 
-    assert adb.commands[-1] == ("cloud-1", "shell", "input", "tap", "360", "958")
+    assert adb.commands[-1] == ("cloud-1", "shell", "input", "touchscreen", "tap", "360", "958")
 
 
 @pytest.mark.asyncio
@@ -107,7 +107,7 @@ async def test_tap_description_right_contains_avoids_center_info_icon() -> None:
 
     await driver.tap_description_right_contains("内容是否使用AI功能")
 
-    assert adb.commands[-1] == ("cloud-1", "shell", "input", "tap", "620", "586")
+    assert adb.commands[-1] == ("cloud-1", "shell", "input", "touchscreen", "tap", "620", "586")
 
 
 @pytest.mark.asyncio
@@ -148,7 +148,7 @@ async def test_replace_numeric_text_clears_existing_value_before_native_adb_inpu
 
     move_to_end = ("cloud-1", "shell", "input", "keyevent", "KEYCODE_MOVE_END")
     delete = ("cloud-1", "shell", "input", "keyevent", "KEYCODE_DEL")
-    enter_value = ("cloud-1", "shell", "input", "text", "1")
+    enter_value = ("cloud-1", "shell", "input", "keyevent", "KEYCODE_1")
     assert move_to_end in adb.commands
     assert adb.commands.count(delete) == 12
     assert enter_value in adb.commands

@@ -13,7 +13,11 @@ class DeviceController:
     def __init__(self, endpoint: str | None = None, http_client: httpx.AsyncClient | None = None) -> None:
         configured_endpoint = os.getenv("HONGSHOUZHI_ENDPOINT") if endpoint is None else endpoint
         self.endpoint = (configured_endpoint or "").rstrip("/")
-        self.http_client = http_client or httpx.AsyncClient(timeout=180, trust_env=False)
+        timeout_seconds = float(os.getenv("DEVICE_PUBLISH_TIMEOUT_SECONDS", "600"))
+        self.http_client = http_client or httpx.AsyncClient(
+            timeout=timeout_seconds,
+            trust_env=False,
+        )
         self._owns_client = http_client is None
 
     async def publish_chapter(

@@ -342,6 +342,24 @@ async def test_publish_resumes_matching_draft_with_missing_chapter_number() -> N
 
 
 @pytest.mark.asyncio
+async def test_publish_marks_duplicate_blocker_from_fanqie_toast() -> None:
+    driver = FakeUiDriver(
+        [
+            "发布设置 确认发布 内容是否使用AI功能 是",
+            "确定要提交章节？",
+            "文章内容有大段落重复，请修改后提交 发布设置 确认发布 内容是否使用AI功能 是",
+            "章节管理 草稿箱",
+        ]
+    )
+
+    result = await FanqiePublishWorkflow(driver).publish(
+        PublishChapter(number=2, title="化工厂深处", content="正文" * 1000)
+    )
+
+    assert result.status == "publish_failed_duplicate"
+
+
+@pytest.mark.asyncio
 async def test_publish_stops_when_chapter_number_belongs_to_different_title() -> None:
     driver = FakeUiDriver(["章节管理 草稿 第2章 另一个标题"])
 

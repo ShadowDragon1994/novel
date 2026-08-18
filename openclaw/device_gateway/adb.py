@@ -48,6 +48,17 @@ class AdbClient:
         await self._run("connect", device_id)
         return await self._run("-s", device_id, *args)
 
+    async def run_device_bytes(self, device_id: str, *args: str) -> bytes:
+        if not DEVICE_ID_PATTERN.fullmatch(device_id):
+            raise AdbError("invalid device_id")
+        try:
+            return await self._run_bytes("-s", device_id, *args)
+        except AdbError as exc:
+            if not self._is_disconnected_error(exc):
+                raise
+        await self._run("connect", device_id)
+        return await self._run_bytes("-s", device_id, *args)
+
     @staticmethod
     def _is_disconnected_error(exc: AdbError) -> bool:
         detail = str(exc).lower()
@@ -55,6 +66,27 @@ class AdbClient:
             marker in detail
             for marker in ("error: closed", "device offline", "not found", "command timed out")
         )
+
+    async def _run_bytes(self, *args: str) -> bytes:
+        try:
+            process = await asyncio.create_subprocess_exec(
+                self.executable,
+                *args,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+        except FileNotFoundError:
+            raise AdbError(f"ADB executable not found: {self.executable}") from None
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=self.timeout_seconds)
+        except TimeoutError:
+            process.kill()
+            await process.communicate()
+            raise AdbError(f"ADB command timed out after {self.timeout_seconds:g}s") from None
+        if process.returncode != 0:
+            detail = stderr.decode(errors="replace").strip() or "unknown ADB error"
+            raise AdbError(detail)
+        return stdout
 
     async def _run(self, *args: str) -> str:
         try:
@@ -76,3 +108,4 @@ class AdbClient:
             detail = stderr.decode(errors="replace").strip() or "unknown ADB error"
             raise AdbError(detail)
         return stdout.decode(errors="replace").strip()
+

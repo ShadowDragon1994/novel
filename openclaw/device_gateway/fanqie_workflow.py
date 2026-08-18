@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
@@ -125,12 +126,34 @@ class FanqiePublishWorkflow:
 
     async def _tap(self, state: str, action: str) -> str:
         resolved = self._action(state, action)
-        if resolved.point is None:
-            raise WorkflowError(f"action {state}.{action} has no coordinate")
-        await self.driver.tap(resolved.point)
-        if not resolved.verify_any:
-            return await self.driver.screen_text()
-        return await self.driver.wait_for_any(resolved.verify_any)
+        attempts = 3 if (state, action) == ("publish_settings", "confirm_publish") else 1
+        last_error: WorkflowError | None = None
+        for _ in range(attempts):
+            if (state, action) == ("publish_settings", "confirm_publish") and resolved.point is not None:
+                press = getattr(self.driver, "press", None)
+                if press is not None:
+                    await press(resolved.point)
+                else:
+                    await self.driver.tap(resolved.point)
+            elif resolved.selector_description:
+                try:
+                    await self.driver.tap_description(resolved.selector_description)
+                except WorkflowError:
+                    if resolved.point is None:
+                        raise
+                    await self.driver.tap(resolved.point)
+            elif resolved.point is not None:
+                await self.driver.tap(resolved.point)
+            else:
+                raise WorkflowError(f"action {state}.{action} has no selector or coordinate")
+            if not resolved.verify_any:
+                return await self.driver.screen_text()
+            try:
+                return await self.driver.wait_for_any(resolved.verify_any)
+            except WorkflowError as exc:
+                last_error = exc
+        assert last_error is not None
+        raise last_error
 
     async def publish(self, chapter: PublishChapter) -> PublishResult:
         if chapter.number < 1 or not chapter.title.strip() or not chapter.content.strip():
@@ -138,6 +161,15 @@ class FanqiePublishWorkflow:
         platform_title = self._platform_title(chapter.title)
         chapter_label = f"第{chapter.number}章 {platform_title}"
         initial_text = await self.driver.screen_text()
+        if "检测到有一个章节未保存" in normalize_semantic_text(initial_text):
+            await self.driver.tap_description("放弃编辑")
+            initial_text = await self.driver.wait_for_any(
+                ("章节管理", "开始创作", "作品", "下一步", "已保存")
+            )
+            if "已保存" in initial_text and "下一步" not in initial_text:
+                initial_text = await self.driver.wait_for_any(
+                    ("下一步", "AI工具箱", "请输入正文")
+                )
         if self._is_submission_success_page(initial_text):
             await self.driver.tap_description_contains("章节管理")
             initial_text = await self.driver.wait_for_any(("审核中", "已发布"))
@@ -208,7 +240,7 @@ class FanqiePublishWorkflow:
                     raise WorkflowError(f"action chapter_editor.{action_name} has no coordinate")
                 await self.driver.replace_text(action.point, value)
 
-            await self.driver.wait_for_any(("已保存到云端",))
+            await self.driver.wait_for_any(("已保存到云端", "已保存"))
             verification_text = await self.driver.screen_text()
             self._validate_saved_content(verification_text, chapter.content)
             await self.driver.tap_description("下一步")
@@ -230,9 +262,25 @@ class FanqiePublishWorkflow:
 
     async def _continue_submission(self, text: str, chapter_label: str) -> PublishResult:
         for _ in range(8):
+            if "检测到有一个章节未保存" in normalize_semantic_text(text):
+                await self.driver.tap_description("放弃编辑")
+                text = await self.driver.wait_for_any(
+                    ("章节管理", "开始创作", "作品", "下一步", "已保存")
+                )
+                if self._is_editor(text):
+                    await self.driver.tap_description("下一步")
+                    text = await self.driver.wait_for_any(
+                        ("检测到您还有错别字未修改，是否确认提交？", "请选择内容检测方式")
+                    )
+                continue
             status = self._existing_status(text, chapter_label)
             if status:
                 return PublishResult(chapter_label=chapter_label, status=status)
+            if "文章内容有大段落重复" in text:
+                return PublishResult(
+                    chapter_label=chapter_label,
+                    status="publish_failed_duplicate",
+                )
             if self._is_submission_success_page(text):
                 await self.driver.tap_description_contains("章节管理")
                 text = await self.driver.wait_for_any(("审核中", "已发布"))
@@ -251,6 +299,10 @@ class FanqiePublishWorkflow:
                 text = await self.driver.screen_text()
             elif "发布设置" in text and "确认发布" in text:
                 if re.search(r"内容是否使用AI功能\s*是(?:\s|$)", text):
+                    # The current Fanqie client renders the selected value before
+                    # the publish button becomes interactive. Give the form time
+                    # to finish its validation before tapping the final action.
+                    await asyncio.sleep(30)
                     text = await self._tap("publish_settings", "confirm_publish")
                 else:
                     await self.driver.tap_description_right_contains("内容是否使用AI功能")
@@ -263,7 +315,10 @@ class FanqiePublishWorkflow:
 
     @staticmethod
     def _is_editor(text: str) -> bool:
-        return "下一步" in text and ("AI工具箱" in text or "已保存到云端" in text or "请输入正文" in text)
+        return (
+            "下一步" in text
+            and ("AI工具箱" in text or "已保存" in text or "请输入正文" in text)
+        ) or ("已保存" in text and "字" in text and "第一卷" in normalize_semantic_text(text))
 
     @staticmethod
     def _is_submission_success_page(text: str) -> bool:
